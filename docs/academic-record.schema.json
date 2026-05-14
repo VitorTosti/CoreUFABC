@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ufa.local/schemas/academic-record.schema.json",
+  "title": "UFA Academic Record Canonical Model",
+  "type": "object",
+  "required": ["aluno", "formacoes", "disciplinas"],
+  "properties": {
+    "aluno": {
+      "type": "object",
+      "required": ["ra", "nome"],
+      "properties": {
+        "ra": { "type": "string" },
+        "nome": { "type": "string" },
+        "curso_ingresso": { "type": "string", "examples": ["BC&T", "BC&H"] }
+      }
+    },
+    "formacoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["codigo", "nome", "creditos_necessarios"],
+        "properties": {
+          "codigo": { "type": "string" },
+          "nome": { "type": "string" },
+          "creditos_necessarios": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "disciplinas": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/disciplinaCursada" }
+    }
+  },
+  "$defs": {
+    "disciplinaCursada": {
+      "type": "object",
+      "required": [
+        "codigo",
+        "nome",
+        "creditos_tide",
+        "categoria_sigla",
+        "conceito",
+        "ano_quadrimestre",
+        "situacao",
+        "eixos"
+      ],
+      "properties": {
+        "codigo": { "type": "string", "examples": ["BC1707"] },
+        "nome": { "type": "string" },
+        "creditos_tide": {
+          "type": "object",
+          "required": ["teoria", "pratica"],
+          "properties": {
+            "teoria": { "type": "integer", "minimum": 0 },
+            "pratica": { "type": "integer", "minimum": 0 },
+            "estudo": { "type": "integer", "minimum": 0 },
+            "individual": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "categoria_sigla": {
+          "type": "string",
+          "enum": ["O", "L", "F"],
+          "description": "O=obrigatoria, L=opcao limitada, F=livre"
+        },
+        "conceito": {
+          "type": "string",
+          "enum": ["A", "B", "C", "D", "F", "O", "TR"]
+        },
+        "ano_quadrimestre": {
+          "type": "string",
+          "pattern": "^[0-9]{4}\\.[1-3]$",
+          "examples": ["2025.2"]
+        },
+        "situacao": {
+          "type": "string",
+          "enum": ["APROVADO", "REPROVADO", "REPROVADO_FALTA", "TRANCADO", "MATRICULADO", "CONVALIDADO", "SIMULADO"]
+        },
+        "eixos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["codigo", "nome", "peso"],
+            "properties": {
+              "codigo": { "type": "string" },
+              "nome": { "type": "string" },
+              "peso": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

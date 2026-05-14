@@ -1,0 +1,989 @@
+{
+  "BCT": {
+    "codigo": "BCT",
+    "label": "BC&T",
+    "nome": "Bacharelado em Ciencia e Tecnologia",
+    "creditos_exigidos": { "obrigatorias": 84, "limitadas": 32, "livres": 60 },
+    "fonte": {
+      "ppc": "PPC BC&T 2023, Ato Decisorio ConsEPE 249/2023, anexo retificado pela Retificacao ConsEPE 254",
+      "url": "https://www.ufabc.edu.br/images/consepe/atos_decisorios/anexo_do_ad_consepe_249_-_ppc_bct_2023_-aprovado_consepe_-_final_pos_errata_12_23.pdf"
+    },
+    "nota_limitadas": "Pool de opcoes limitadas definido no PPC vigente por grupos tematicos. Consulte a Prograd para a lista completa disponivel no quadrimestre corrente.",
+    "nota_quadrimestre_ideal": "Posicao sugerida no fluxo curricular com base nos pre-requisitos e na sequencia pedagogica do PPC. 1 = primeiro quadrimestre ideal, 2 = segundo, e assim por diante.",
+    "materias_obrigatorias": [
+      {
+        "codigo": "BCJ0204-15",
+        "nome": "Fenomenos Mecanicos",
+        "creditos": 5,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCJ0205-15",
+        "nome": "Fenomenos Termicos",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": ["BCJ0204-15"],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCJ0203-15",
+        "nome": "Fenomenos Eletromagneticos",
+        "creditos": 5,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": ["BCJ0204-15"],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIL0304-15",
+        "nome": "Evolucao e Diversificacao da Vida na Terra",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCL0307-15",
+        "nome": "Transformacoes Quimicas",
+        "creditos": 5,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCL0306-15",
+        "nome": "Biodiversidade: Interacoes entre organismos e ambiente",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCN0404-15",
+        "nome": "Geometria Analitica",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "BCN0402-15",
+        "nome": "Funcoes de Uma Variavel",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": ["BIS0003-15"],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "BCN0407-15",
+        "nome": "Funcoes de Varias Variaveis",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": ["BCN0402-15"],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "BCN0405-15",
+        "nome": "Introducao as Equacoes Diferenciais Ordinarias",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": ["BCN0402-15"],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "BIN0406-15",
+        "nome": "Introducao a Probabilidade e a Estatistica",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": ["BIS0003-15"],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "BCM0504-15",
+        "nome": "Natureza da Informacao",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 1 }]
+      },
+      {
+        "codigo": "BCM0505-22",
+        "nome": "Processamento da Informacao",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": ["BIS0005-15"],
+        "eixos": [{ "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 1 }]
+      },
+      {
+        "codigo": "BCM0506-15",
+        "nome": "Comunicacao e Redes",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": ["BCM0504-15"],
+        "eixos": [{ "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 1 }]
+      },
+      {
+        "codigo": "BIK0102-15",
+        "nome": "Estrutura da Materia",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCK0103-15",
+        "nome": "Fisica Quantica",
+        "creditos": 3,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": ["BIK0102-15"],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCL0308-15",
+        "nome": "Bioquimica: Estrutura, propriedade e funcoes de Biomoleculas",
+        "creditos": 5,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": ["BCL0307-15"],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIR0004-15",
+        "nome": "Bases Epistemologicas da Ciencia Moderna",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.6 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.4 }
+        ]
+      },
+      {
+        "codigo": "BIQ0602-15",
+        "nome": "Estrutura e Dinamica Social",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BIR0603-15",
+        "nome": "Ciencia, Tecnologia e Sociedade",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.7 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.3 }
+        ]
+      },
+      {
+        "codigo": "BCS0001-15",
+        "nome": "Base Experimental das Ciencias Naturais",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIS0005-15",
+        "nome": "Bases Computacionais da Ciencia",
+        "creditos": 2,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 0.7 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.3 }
+        ]
+      },
+      {
+        "codigo": "BIS0003-15",
+        "nome": "Bases Matematicas",
+        "creditos": 4,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "BIS0002-15",
+        "nome": "Projeto Dirigido",
+        "creditos": 2,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "engenharia-tecnologia", "nome": "Engenharia e Tecnologia", "peso": 0.6 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.4 }
+        ]
+      }
+    ],
+    "materias_limitadas": [],
+    "materias_livres": [],
+    "sugestoes": {
+      "opcionais": [
+        {
+          "codigo": "ESIF001-23",
+          "nome": "Codificacao de Sinais Multimidia",
+          "motivo": "Boa ponte para estudantes do BC&T interessados em computacao, sinais e processamento de dados.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        },
+        {
+          "codigo": "NHBT004-23",
+          "nome": "Divulgacao Cientifica em Biotecnologia",
+          "motivo": "Aproxima ciencias naturais, comunicacao publica da ciencia e projetos com metodologia extensionista.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        }
+      ],
+      "livres": [
+        {
+          "codigo": "ESEC002-24",
+          "nome": "Economia nas Escolas",
+          "motivo": "Opcao interdisciplinar para usar creditos livres em extensao, economia e educacao.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        },
+        {
+          "codigo": "ESEC004-24",
+          "nome": "Oficinas em Economia e Historia do ABC Paulista",
+          "motivo": "Sugestao livre para conectar tecnologia, territorio e contexto regional do ABC.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        }
+      ]
+    }
+  },
+  "BCH": {
+    "codigo": "BCH",
+    "label": "BC&H",
+    "nome": "Bacharelado em Ciencias e Humanidades",
+    "creditos_exigidos": { "obrigatorias": 72, "limitadas": 64, "livres": 40 },
+    "fonte": {
+      "ppc": "PPC BC&H 2022, Ato Decisorio ConsEPE 236/2022",
+      "url": "https://www.ufabc.edu.br/images/stories/comunicacao/Boletim/consepe_ato_decisorio_236_anexo.pdf"
+    },
+    "nota_limitadas": "Pool de opcoes limitadas organizado por eixos tematicos no PPC vigente. Consulte a Prograd para a lista completa disponivel no quadrimestre corrente.",
+    "nota_quadrimestre_ideal": "Posicao sugerida no fluxo curricular com base nos pre-requisitos e na sequencia pedagogica do PPC. 1 = primeiro quadrimestre ideal, 2 = segundo, e assim por diante.",
+    "materias_obrigatorias": [
+      {
+        "codigo": "BHO0101-15",
+        "nome": "Estado e Relacoes de Poder",
+        "creditos": 4,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BIQ0602-15",
+        "nome": "Estrutura e Dinamica Social",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHO0001-15",
+        "nome": "Introducao a Economia",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHO0002-15",
+        "nome": "Introducao ao Pensamento Economico",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": ["BHO0001-15"],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHP0001-15",
+        "nome": "Etica e Justica",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHP0202-15",
+        "nome": "Pensamento Critico",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHP0101-15",
+        "nome": "Temas e Problemas em Filosofia",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHS0002-15",
+        "nome": "Estudos de Genero",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHQ0002-15",
+        "nome": "Estudos Etnico-Raciais",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHO1335-15",
+        "nome": "Formacao do Sistema Internacional",
+        "creditos": 4,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHQ0001-15",
+        "nome": "Identidade e Cultura",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHQ0003-15",
+        "nome": "Interpretacoes do Brasil",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHQ0301-15",
+        "nome": "Territorio e Sociedade",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BIR0603-15",
+        "nome": "Ciencia, Tecnologia e Sociedade",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.7 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.3 }
+        ]
+      },
+      {
+        "codigo": "BHO0102-15",
+        "nome": "Desenvolvimento e Sustentabilidade",
+        "creditos": 4,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BIR0004-15",
+        "nome": "Bases Epistemologicas da Ciencia Moderna",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.6 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.4 }
+        ]
+      },
+      {
+        "codigo": "BHS0001-15",
+        "nome": "Introducao as Humanidades e as Ciencias Sociais",
+        "creditos": 2,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHS0003-15",
+        "nome": "Praticas em Ciencias e Humanidades",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.6 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.4 }
+        ]
+      },
+      {
+        "codigo": "BCL0306-15",
+        "nome": "Biodiversidade: Interacoes entre organismos e ambiente",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIS0005-15",
+        "nome": "Bases Computacionais da Ciencia",
+        "creditos": 2,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 0.7 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.3 }
+        ]
+      },
+      {
+        "codigo": "BIS0003-15",
+        "nome": "Bases Matematicas",
+        "creditos": 4,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "BIN0406-15",
+        "nome": "Introducao a Probabilidade e a Estatistica",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": ["BIS0003-15"],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      }
+    ],
+    "materias_limitadas": [],
+    "materias_livres": [],
+    "sugestoes": {
+      "opcionais": [
+        {
+          "codigo": "ESEC002-24",
+          "nome": "Economia nas Escolas",
+          "motivo": "Combina economia, educacao e pratica extensionista, alinhada ao eixo social do BC&H.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        },
+        {
+          "codigo": "ESEC004-24",
+          "nome": "Oficinas em Economia e Historia do ABC Paulista",
+          "motivo": "Reforca territorio, historia economica regional e insercao social, temas recorrentes do BC&H.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        }
+      ],
+      "livres": [
+        {
+          "codigo": "NHBT004-23",
+          "nome": "Divulgacao Cientifica em Biotecnologia",
+          "motivo": "Sugestao livre para ampliar repertorio em comunicacao cientifica fora do nucleo de humanidades.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        },
+        {
+          "codigo": "ESIF001-23",
+          "nome": "Codificacao de Sinais Multimidia",
+          "motivo": "Opcao livre para estudantes que queiram experimentar tecnologia e midias digitais.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        }
+      ]
+    }
+  },
+  "LCN": {
+    "codigo": "LCN",
+    "label": "LC&N",
+    "nome": "Licenciatura em Ciencias Naturais e Exatas",
+    "creditos_exigidos": { "obrigatorias": 82, "limitadas": 96, "livres": 0 },
+    "fonte": {
+      "ppc": "PPC LCNE 2022, Ato Decisorio ConsEPE 243/2022; pagina oficial indica PPC LCNE 2026 aprovado pelo Ato Decisorio ConsEPE 320/2026",
+      "url": "https://www.ufabc.edu.br/images/stories/comunicacao/Boletim/consepe_ato_decisorio_243_anexo.pdf"
+    },
+    "nota_limitadas": "Os 96 creditos limitados do LC&N incluem as enfases (Biologia, Fisica, Matematica, Quimica) e estagio supervisionado. Consulte o PPC vigente para a lista completa por enfase.",
+    "nota_quadrimestre_ideal": "Posicao sugerida no fluxo curricular com base nos pre-requisitos e na sequencia pedagogica do PPC. 1 = primeiro quadrimestre ideal, 2 = segundo, e assim por diante.",
+    "materias_obrigatorias": [
+      {
+        "codigo": "BCS0001-15",
+        "nome": "Base Experimental das Ciencias Naturais",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIS0005-15",
+        "nome": "Bases Computacionais da Ciencia",
+        "creditos": 2,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 0.7 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.3 }
+        ]
+      },
+      {
+        "codigo": "BIJ0207-15",
+        "nome": "Bases Conceituais da Energia",
+        "creditos": 2,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIR0004-15",
+        "nome": "Bases Epistemologicas da Ciencia Moderna",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.6 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.4 }
+        ]
+      },
+      {
+        "codigo": "BIS0003-15",
+        "nome": "Bases Matematicas",
+        "creditos": 4,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "BCL0306-15",
+        "nome": "Biodiversidade: Interacoes entre organismo e ambiente",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIR0603-15",
+        "nome": "Ciencia, Tecnologia e Sociedade",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.7 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.3 }
+        ]
+      },
+      {
+        "codigo": "NHI5001-15",
+        "nome": "Desenvolvimento e Aprendizagem",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHI5002-15",
+        "nome": "Didatica",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BIK0102-15",
+        "nome": "Estrutura da Materia",
+        "creditos": 3,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIQ0602-15",
+        "nome": "Estrutura e Dinamica Social",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHQ0002-15",
+        "nome": "Estudos Etnico-Raciais",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BIL0304-15",
+        "nome": "Evolucao e Diversificacao da Vida na Terra",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCJ0204-15",
+        "nome": "Fenomenos Mecanicos",
+        "creditos": 5,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BCN0402-15",
+        "nome": "Funcoes de uma Variavel",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": ["BIS0003-15"],
+        "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+      },
+      {
+        "codigo": "NHZ5016-15",
+        "nome": "Historia da Educacao",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHI5015-22",
+        "nome": "LIBRAS",
+        "creditos": 4,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "LIE0001-19",
+        "nome": "Metodologias de Pesquisa em Educacao",
+        "creditos": 2,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHI5011-13",
+        "nome": "Politicas Educacionais",
+        "creditos": 3,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHT5013-22",
+        "nome": "Praticas de Ensino de Ciencias e Matematica no Ensino Fundamental",
+        "creditos": 4,
+        "quadrimestre_ideal": 5,
+        "pre_requisitos": ["NHI5002-15"],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.5 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.5 }
+        ]
+      },
+      {
+        "codigo": "NHZ5023-18",
+        "nome": "Praticas Escolares em Educacao Especial e Inclusiva",
+        "creditos": 4,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHZ5019-22",
+        "nome": "Tecnologias da Informacao e Comunicacao na Educacao",
+        "creditos": 3,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 0.5 },
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.5 }
+        ]
+      },
+      {
+        "codigo": "NHZ2099-16",
+        "nome": "Topicos Contemporaneos em Educacao e Filosofia",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BCL0307-15",
+        "nome": "Transformacoes Quimicas",
+        "creditos": 5,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      }
+    ],
+    "materias_limitadas": [],
+    "materias_livres": [],
+    "sugestoes": {
+      "opcionais": [
+        {
+          "codigo": "NHBT004-23",
+          "nome": "Divulgacao Cientifica em Biotecnologia",
+          "motivo": "Fortalece comunicacao publica da ciencia, util para licenciaturas e ensino de ciencias.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        },
+        {
+          "codigo": "ESEC002-24",
+          "nome": "Economia nas Escolas",
+          "motivo": "Exemplo de disciplina extensionista com interface direta com educacao basica.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        }
+      ],
+      "livres": [
+        {
+          "codigo": "ESIF001-23",
+          "nome": "Codificacao de Sinais Multimidia",
+          "motivo": "Sugestao livre para explorar tecnologia, midias e acessibilidade digital no ensino.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        },
+        {
+          "codigo": "ESEC004-24",
+          "nome": "Oficinas em Economia e Historia do ABC Paulista",
+          "motivo": "Ajuda a contextualizar ciencia e educacao no territorio do ABC.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        }
+      ]
+    }
+  },
+  "LCH": {
+    "codigo": "LCH",
+    "label": "LC&H",
+    "nome": "Licenciatura em Ciencias Humanas",
+    "creditos_exigidos": { "obrigatorias": 83, "limitadas": 96, "livres": 29 },
+    "fonte": {
+      "ppc": "PPC LCH 2025, Ato Decisorio ConsEPE 307/2025, valido para ingressantes a partir de 2026",
+      "url": "https://www.ufabc.edu.br/images/stories/comunicacao/Boletim/consepe_ato-decisorio_307_anexo.pdf"
+    },
+    "nota_limitadas": "Os 96 creditos limitados do LC&H incluem as enfases (Historia, Geografia, Ciencias Sociais) e estagio supervisionado. Consulte o PPC vigente para a lista completa por enfase.",
+    "nota_quadrimestre_ideal": "Posicao sugerida no fluxo curricular com base nos pre-requisitos e na sequencia pedagogica do PPC. 1 = primeiro quadrimestre ideal, 2 = segundo, e assim por diante.",
+    "materias_obrigatorias": [
+      {
+        "codigo": "BIR0603-15",
+        "nome": "Ciencia, Tecnologia e Sociedade",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.7 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.3 }
+        ]
+      },
+      {
+        "codigo": "NHI5001-15",
+        "nome": "Desenvolvimento e Aprendizagem",
+        "creditos": 4,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHZ5023-18",
+        "nome": "Praticas Escolares em Educacao Especial e Inclusiva",
+        "creditos": 4,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHZ2099-16",
+        "nome": "Topicos Contemporaneos em Educacao e Filosofia",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BIJ0207-15",
+        "nome": "Bases Conceituais da Energia",
+        "creditos": 2,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "BIQ0602-15",
+        "nome": "Estrutura e Dinamica Social",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHI5011-13",
+        "nome": "Politicas Educacionais",
+        "creditos": 3,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHI5015-22",
+        "nome": "LIBRAS",
+        "creditos": 4,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHZ5016-15",
+        "nome": "Historia da Educacao",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHZ5019-22",
+        "nome": "Tecnologias da Informacao e Comunicacao na Educacao",
+        "creditos": 3,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 0.5 },
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.5 }
+        ]
+      },
+      {
+        "codigo": "BIR0004-15",
+        "nome": "Bases Epistemologicas da Ciencia Moderna",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.6 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.4 }
+        ]
+      },
+      {
+        "codigo": "BHQ0002-15",
+        "nome": "Estudos Etnico-Raciais",
+        "creditos": 3,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHS0002-22",
+        "nome": "Diversidade de Genero e Formacao de Professor",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHI5002-15",
+        "nome": "Didatica",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BCL0306-15",
+        "nome": "Biodiversidade: interacoes entre organismos e ambiente",
+        "creditos": 3,
+        "quadrimestre_ideal": 1,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 1 }]
+      },
+      {
+        "codigo": "LIE0001-19",
+        "nome": "Metodologias de Pesquisa em Educacao",
+        "creditos": 2,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "NHZ4081-20",
+        "nome": "Paulo Freire: educacao para a criticidade",
+        "creditos": 2,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "LHE0001-19",
+        "nome": "Historia, Eurocentrismo e Pos Colonialismo",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "LHE0004-19",
+        "nome": "Teoria da Historia I",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHQ0301-15",
+        "nome": "Territorio e Sociedade",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "ESHT007-17",
+        "nome": "Estudos do Meio Fisico",
+        "creditos": 4,
+        "quadrimestre_ideal": 3,
+        "pre_requisitos": [],
+        "eixos": [
+          { "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 0.5 },
+          { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.5 }
+        ]
+      },
+      {
+        "codigo": "BHQ0003-15",
+        "nome": "Interpretacoes do Brasil",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHO0102-15",
+        "nome": "Desenvolvimento e Sustentabilidade",
+        "creditos": 4,
+        "quadrimestre_ideal": 4,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      },
+      {
+        "codigo": "BHP0001-15",
+        "nome": "Etica e Justica",
+        "creditos": 4,
+        "quadrimestre_ideal": 2,
+        "pre_requisitos": [],
+        "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+      }
+    ],
+    "materias_limitadas": [],
+    "materias_livres": [],
+    "sugestoes": {
+      "opcionais": [
+        {
+          "codigo": "ESEC004-24",
+          "nome": "Oficinas em Economia e Historia do ABC Paulista",
+          "motivo": "Conecta historia regional, economia e pratica extensionista, aderente a formacao em humanas.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        },
+        {
+          "codigo": "ESEC002-24",
+          "nome": "Economia nas Escolas",
+          "motivo": "Dialoga com ensino, economia e intervencao publica, temas uteis para licenciatura.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        }
+      ],
+      "livres": [
+        {
+          "codigo": "NHBT004-23",
+          "nome": "Divulgacao Cientifica em Biotecnologia",
+          "motivo": "Amplia repertorio em ciencia e comunicacao para alem do nucleo de humanas.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        },
+        {
+          "codigo": "ESIF001-23",
+          "nome": "Codificacao de Sinais Multimidia",
+          "motivo": "Sugestao livre para experimentar tecnologia, audiovisual e midias digitais.",
+          "fonte": "Catalogo de Disciplinas UFABC 2024-2025"
+        }
+      ]
+    }
+  }
+}

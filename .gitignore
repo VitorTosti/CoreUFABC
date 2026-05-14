@@ -1,0 +1,32 @@
+node_modules/
+dist/
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test output
+coverage/
+test-results/
+
+# Configuração local dos agentes (nunca subir)
+.claude/
+.codex/

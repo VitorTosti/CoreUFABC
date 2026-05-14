@@ -1,0 +1,71 @@
+{
+  "aluno": {
+    "ra": "11202600000",
+    "nome": "Aluno Mock UFA",
+    "curso_ingresso": "BC&T"
+  },
+  "formacoes": [
+    {
+      "codigo": "BCT",
+      "nome": "Bacharelado em Ciencia e Tecnologia",
+      "creditos_necessarios": 190
+    },
+    {
+      "codigo": "CC",
+      "nome": "Ciencia da Computacao",
+      "creditos_necessarios": 240
+    }
+  ],
+  "disciplinas": [
+    {
+      "codigo": "BC1707",
+      "nome": "Bases Computacionais da Ciencia",
+      "creditos_tide": { "teoria": 0, "pratica": 2, "estudo": 2, "individual": 4 },
+      "categoria_sigla": "O",
+      "conceito": "A",
+      "ano_quadrimestre": "2025.1",
+      "situacao": "APROVADO",
+      "eixos": [{ "codigo": "computacao", "nome": "Computacao e Informacao", "peso": 1 }]
+    },
+    {
+      "codigo": "BC0005",
+      "nome": "Bases Matematicas",
+      "creditos_tide": { "teoria": 4, "pratica": 0, "estudo": 4, "individual": 4 },
+      "categoria_sigla": "O",
+      "conceito": "B",
+      "ano_quadrimestre": "2025.1",
+      "situacao": "APROVADO",
+      "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+    },
+    {
+      "codigo": "BC0402",
+      "nome": "Funcao de Uma Variavel",
+      "creditos_tide": { "teoria": 4, "pratica": 0, "estudo": 4, "individual": 6 },
+      "categoria_sigla": "O",
+      "conceito": "F",
+      "ano_quadrimestre": "2025.2",
+      "situacao": "REPROVADO",
+      "eixos": [{ "codigo": "matematica", "nome": "Matematica", "peso": 1 }]
+    },
+    {
+      "codigo": "BC0506",
+      "nome": "Comunidade, Universidade e Sociedade",
+      "creditos_tide": { "teoria": 2, "pratica": 0, "estudo": 2, "individual": 2 },
+      "categoria_sigla": "L",
+      "conceito": "C",
+      "ano_quadrimestre": "2025.2",
+      "situacao": "APROVADO",
+      "eixos": [{ "codigo": "humanidades", "nome": "Humanidades e Sociedade", "peso": 1 }]
+    },
+    {
+      "codigo": "BC9999",
+      "nome": "Topicos Livres em Vida Universitaria",
+      "creditos_tide": { "teoria": 2, "pratica": 0, "estudo": 2, "individual": 2 },
+      "categoria_sigla": "F",
+      "conceito": "TR",
+      "ano_quadrimestre": "2025.3",
+      "situacao": "TRANCADO",
+      "eixos": [{ "codigo": "livres", "nome": "Livre Escolha", "peso": 1 }]
+    }
+  ]
+}
