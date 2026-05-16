@@ -7,10 +7,19 @@ export async function fetchAcademicRecordByRa(ra, options = {}) {
   } = options;
 
   if (!baseUrl) {
-    const fallbackRecord = fallbackRecords.find((record) => normalizeRa(record.aluno?.ra) === normalizedRa);
-    if (fallbackRecord) return fallbackRecord;
+    const fallbackRecord =
+      fallbackRecords.find((record) => normalizeRa(record.aluno?.ra) === normalizedRa) ??
+      fallbackRecords[0];
 
-    throw new Error("API academica nao configurada para este RA");
+    if (fallbackRecord) {
+      return {
+        ...fallbackRecord,
+        aluno: { ...fallbackRecord.aluno, ra: normalizedRa },
+        _demoMode: true,
+      };
+    }
+
+    throw new Error("Nenhum historico de demonstracao disponivel.");
   }
 
   if (typeof fetcher !== "function") {

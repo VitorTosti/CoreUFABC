@@ -30,3 +30,7 @@ test-results/
 # Configuração local dos agentes (nunca subir)
 .claude/
 .codex/
+
+# Arquivos de debug temporários
+*.debug.txt
+turmas-debug.txt

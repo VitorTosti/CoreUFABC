@@ -52,7 +52,12 @@ export function buildCurriculumProgress(plan = COURSE_PLANS.BCT, approvedCodes =
           );
         return { ...item, completed, preReqsMet };
       })
-      .sort((a, b) => (a.quadrimestre_ideal ?? 99) - (b.quadrimestre_ideal ?? 99));
+      .sort((a, b) => {
+        // Completed items surface first so the student sees their progress at a glance.
+        if (a.completed !== b.completed) return a.completed ? -1 : 1;
+        // Within the same completion group, respect the pedagogical sequence.
+        return (a.quadrimestre_ideal ?? 99) - (b.quadrimestre_ideal ?? 99);
+      });
     const completedItems = items.filter((item) => item.completed);
 
     return {

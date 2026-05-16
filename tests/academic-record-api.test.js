@@ -39,7 +39,11 @@ describe("academic record API connector", () => {
       fallbackRecords: [fallbackRecord],
     });
 
-    assert.deepEqual(result, fallbackRecord);
+    assert.deepEqual(result, {
+      ...fallbackRecord,
+      aluno: { ...fallbackRecord.aluno, ra: "11202600000" },
+      _demoMode: true,
+    });
   });
 
   it("rejects invalid RA input before calling an API", async () => {

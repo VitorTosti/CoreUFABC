@@ -7,7 +7,7 @@ describe("academic app pages", () => {
   it("keeps the mobile app pages in the expected student-first order", () => {
     assert.deepEqual(
       ACADEMIC_APP_PAGES.map((page) => page.key),
-      ["home", "planning", "simulator", "history"],
+      ["home", "planning", "performance", "history", "grade"],
     );
   });
 });
