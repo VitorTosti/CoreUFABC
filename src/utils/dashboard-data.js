@@ -19,7 +19,7 @@ export function groupByQuadrimester(courses) {
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([label, items]) => ({
       label,
-      courses: items.sort((a, b) => a.codigo.localeCompare(b.codigo)),
+      courses: items.sort((a, b) => (a.codigo ?? "").localeCompare(b.codigo ?? "")),
       approved: items.filter(isApproved).length,
       total: items.length,
     }));

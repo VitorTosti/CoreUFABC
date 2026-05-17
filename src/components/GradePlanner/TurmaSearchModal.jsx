@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { searchTurmas } from "../../services/turmas-service.js";
 import { hasConflictWithSelected } from "../../utils/grade-planner.js";
+import { useEnrollmentData } from "../../hooks/useEnrollmentData.js";
 import { TurmaCard } from "./TurmaCard.jsx";
 
 const CAMPUS_OPTIONS = [
@@ -13,6 +14,15 @@ const TURNO_OPTIONS = [
   { value: null,       label: "Todos" },
   { value: "diurno",  label: "Diurno" },
   { value: "noturno", label: "Noturno" },
+];
+
+// Foundational cycles — value must match a key in COURSE_PLANS / PLAN_CODE_SETS.
+const CURSO_OPTIONS = [
+  { value: null,    label: "Todos", activeClass: "bg-slate-800 text-white",                        idleClass: "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700" },
+  { value: "BCT",   label: "BC&T",  activeClass: "bg-emerald-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.40)]",  idleClass: "border-emerald-200 text-emerald-700 hover:bg-emerald-50" },
+  { value: "BCH",   label: "BC&H",  activeClass: "bg-blue-500    text-white shadow-[0_4px_12px_rgba(59,130,246,0.40)]",  idleClass: "border-blue-200    text-blue-700    hover:bg-blue-50" },
+  { value: "LCN",   label: "LCN",   activeClass: "bg-teal-500    text-white shadow-[0_4px_12px_rgba(20,184,166,0.40)]",  idleClass: "border-teal-200    text-teal-700    hover:bg-teal-50" },
+  { value: "LCH",   label: "LCH",   activeClass: "bg-cyan-500    text-white shadow-[0_4px_12px_rgba(6,182,212,0.40)]",   idleClass: "border-cyan-200    text-cyan-700    hover:bg-cyan-50" },
 ];
 
 const PAGE_SIZE = 30;
@@ -29,15 +39,18 @@ export function TurmaSearchModal({ selectedTurmas, onToggle, onClose }) {
   const [query, setQuery] = useState("");
   const [campus, setCampus] = useState(null);
   const [turno, setTurno] = useState(null);
+  const [cursos, setCursos] = useState(null);
   const [page, setPage] = useState(1);
+
+  const { enrollmentMap, isLoading: enrollmentLoading, isAvailable: enrollmentAvailable } = useEnrollmentData();
 
   const selectedIds = useMemo(() => new Set(selectedTurmas.map((t) => t.id)), [selectedTurmas]);
 
   const results = useMemo(() => {
     setPage(1); // reset page on filter change
-    return searchTurmas(query, { campus, turno });
+    return searchTurmas(query, { campus, turno, cursos });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, campus, turno]);
+  }, [query, campus, turno, cursos]);
 
   const paginated = useMemo(() => results.slice(0, page * PAGE_SIZE), [results, page]);
 
@@ -69,6 +82,9 @@ export function TurmaSearchModal({ selectedTurmas, onToggle, onClose }) {
         <div className="ml-auto text-right">
           <p className="text-[0.58rem] font-bold text-slate-400">{results.length} encontradas</p>
           <p className="text-[0.58rem] font-bold text-emerald-600">{selectedTurmas.length} selecionadas</p>
+          {enrollmentAvailable && (
+            <p className="text-[0.5rem] font-bold text-violet-500">● Matrículas ao vivo</p>
+          )}
         </div>
       </div>
 
@@ -94,7 +110,7 @@ export function TurmaSearchModal({ selectedTurmas, onToggle, onClose }) {
           />
         </div>
 
-        {/* Filters */}
+        {/* Campus + Turno */}
         <div className="flex gap-2">
           <FilterGroup
             label="Campus"
@@ -108,6 +124,30 @@ export function TurmaSearchModal({ selectedTurmas, onToggle, onClose }) {
             value={turno}
             onChange={setTurno}
           />
+        </div>
+
+        {/* Curso (foundational cycle) */}
+        <div>
+          <p className="mb-1.5 text-[0.55rem] font-black uppercase tracking-[0.18em] text-slate-400">
+            Curso
+          </p>
+          <div className="flex gap-1.5">
+            {CURSO_OPTIONS.map((opt) => {
+              const active = opt.value === cursos;
+              return (
+                <button
+                  key={String(opt.value)}
+                  type="button"
+                  onClick={() => setCursos(opt.value)}
+                  className={`flex-1 rounded-lg border py-1.5 text-[0.6rem] font-black transition ${
+                    active ? opt.activeClass : opt.idleClass
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -130,6 +170,7 @@ export function TurmaSearchModal({ selectedTurmas, onToggle, onClose }) {
                   isSelected={isSelected}
                   hasConflict={hasConflict}
                   onToggle={() => handleToggle(turma)}
+                  enrollment={enrollmentMap.get(turma.id) ?? null}
                 />
               );
             })}

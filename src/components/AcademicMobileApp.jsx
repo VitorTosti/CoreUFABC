@@ -1,9 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ACADEMIC_APP_PAGES } from "../utils/app-pages.js";
 import { fetchAcademicRecordByRa } from "../services/academic-record-api.js";
+import { fetchHistoricoByRa, upsertHistorico, fetchFromSigaaProxy, isSupabaseConfigured } from "../services/supabase.js";
 import { buildCurriculumProgress, COURSE_PLANS, createCompletedCourseTokens, normalizeCurriculumToken } from "../utils/curriculum-progress.js";
 import { formatDecimal, formatPercent } from "../utils/dashboard-data.js";
+import {
+  parseTurmasOfertadasPdf,
+  buildTurmasOfertadasUrl,
+  getCurrentPeriodo,
+  filterAvailablePendingCourses,
+} from "../services/turmas-ofertadas-parser.js";
+import { normalizeRawCourseCode } from "../services/sigaa-record-parser.js";
 import { CourseSelector } from "./CourseSelector.jsx";
 import { CurriculumProgress } from "./CurriculumProgress.jsx";
 import { DeveloperDiagnosticsPanel } from "./DeveloperDiagnosticsPanel.jsx";
@@ -11,18 +19,29 @@ import { GradeSimulator } from "./GradeSimulator.jsx";
 import { GradePlannerPage } from "./GradePlanner/index.jsx";
 import { ProgressoEixos } from "./ProgressoEixos.jsx";
 import { QuadriSection } from "./QuadriSection.jsx";
+import { SigaaImportModal } from "./SigaaImportModal.jsx";
 
 export function AcademicMobileApp({
   dashboard,
   academicHistory,
   fallbackAcademicHistories = [],
   onAcademicHistoryLoaded,
+  initialRa = null,
+  autoLoadStatus = null,
 }) {
   const [activePage, setActivePage] = useState("home");
   const [selectedPlanKey, setSelectedPlanKey] = useState("BCT");
   const [manualCompletedTokens, setManualCompletedTokens] = useState(() => new Set());
   const [raStatus, setRaStatus] = useState({ type: "idle", message: "" });
   const [isLoadingRa, setIsLoadingRa] = useState(false);
+  // Abre modal automaticamente se RA não encontrado no Supabase
+  const [showImportModal, setShowImportModal] = useState(autoLoadStatus === "not-found");
+  const [pendingRa, setPendingRa] = useState(autoLoadStatus === "not-found" ? initialRa : null);
+  // ── Turmas ofertadas (course offerings for the current quadrimester) ──
+  const [offerings, setOfferings] = useState(null); // Map<code, CourseOffering> | null
+  const [offeringsStatus, setOfferingsStatus] = useState("idle"); // idle | loading | loaded | error
+  const [offeringsPeriodo, setOfferingsPeriodo] = useState(null);
+
   const courses = academicHistory.disciplinas;
   const approvedCodes = useMemo(
     () => createCompletedCourseTokens(courses, manualCompletedTokens),
@@ -33,6 +52,69 @@ export function AcademicMobileApp({
     [approvedCodes, selectedPlanKey],
   );
   const plans = useMemo(() => Object.values(COURSE_PLANS), []);
+
+  // ── Helper: parse a turmas ofertadas PDF from an ArrayBuffer ──
+  async function parseOfferingsPdf(arrayBuffer, fallbackPeriodo) {
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs",
+      import.meta.url,
+    ).toString();
+
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+    const allItems = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      for (const item of content.items) {
+        if (item.str?.trim()) {
+          allItems.push({
+            x: Math.round(item.transform[4]),
+            y: Math.round(item.transform[5]),
+            str: item.str.trim(),
+          });
+        }
+      }
+    }
+
+    const { periodo: detectedPeriodo, courses: coursesMap } = parseTurmasOfertadasPdf({ items: allItems });
+    setOfferings(coursesMap);
+    setOfferingsPeriodo(detectedPeriodo ?? fallbackPeriodo);
+    setOfferingsStatus("loaded");
+  }
+
+  // ── Auto-fetch turmas ofertadas on mount ──
+  useEffect(() => {
+    if (offeringsStatus !== "idle") return;
+
+    const periodo = getCurrentPeriodo();
+    const url = buildTurmasOfertadasUrl(periodo);
+    setOfferingsStatus("loading");
+
+    fetch(url)
+      .then((resp) => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.arrayBuffer();
+      })
+      .then((buf) => parseOfferingsPdf(buf, periodo))
+      .catch((err) => {
+        console.warn("Auto-fetch turmas ofertadas falhou (CORS?):", err.message);
+        setOfferingsStatus("needs-upload");
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Manual upload of turmas ofertadas PDF ──
+  async function handleOfferingsUpload(file) {
+    setOfferingsStatus("loading");
+    try {
+      const buf = await file.arrayBuffer();
+      await parseOfferingsPdf(buf, getCurrentPeriodo());
+    } catch (err) {
+      console.warn("Erro ao ler PDF de turmas:", err.message);
+      setOfferingsStatus("error");
+    }
+  }
+
   const handleToggleRequirement = (item) => {
     setManualCompletedTokens((currentTokens) => {
       const nextTokens = new Set(currentTokens);
@@ -50,29 +132,101 @@ export function AcademicMobileApp({
       return nextTokens;
     });
   };
-  const handleConnectRa = async (ra) => {
+  const handleConnectRa = async (ra, senha) => {
     setIsLoadingRa(true);
     setRaStatus({ type: "idle", message: "" });
+    const normalizedRa = ra.replace(/\D/g, "");
 
     try {
-      const loadedHistory = await fetchAcademicRecordByRa(ra, {
-        baseUrl: import.meta.env.VITE_ACADEMIC_RECORD_API_URL,
-        fallbackRecords: fallbackAcademicHistories,
-      });
+      // 1. Try Supabase cache first (instant — no password needed)
+      if (isSupabaseConfigured()) {
+        const supabaseData = await fetchHistoricoByRa(normalizedRa);
+        if (supabaseData) {
+          onAcademicHistoryLoaded?.(supabaseData);
+          setManualCompletedTokens(new Set());
+          setRaStatus({
+            type: "success",
+            message: "Historico academico carregado com sucesso.",
+          });
+          setIsLoadingRa(false);
+          return;
+        }
+      }
 
-      onAcademicHistoryLoaded?.(loadedHistory);
-      setManualCompletedTokens(new Set());
-      setRaStatus({
-        type: loadedHistory._demoMode ? "demo" : "success",
-        message: loadedHistory._demoMode
-          ? "Modo demonstracao: exibindo historico simulado. Conecte a API para dados reais."
-          : "Historico academico carregado com sucesso.",
-      });
+      // 2. RA not cached — need password to fetch from SIGAA
+      if (!senha) {
+        setRaStatus({
+          type: "needPassword",
+          message: "RA nao encontrado no cache. Informe sua senha do SIGAA para importar.",
+        });
+        setPendingRa(normalizedRa);
+        setIsLoadingRa(false);
+        return;
+      }
+
+      // 3. Fetch from SIGAA via Edge Function proxy
+      setRaStatus({ type: "loading", message: "Conectando ao SIGAA..." });
+      const sigaaResult = await fetchFromSigaaProxy(normalizedRa, senha);
+
+      if (sigaaResult.success && sigaaResult.record) {
+        const record = sigaaResult.record;
+
+        // Save to Supabase for future instant lookups
+        if (isSupabaseConfigured()) {
+          try {
+            await upsertHistorico(
+              normalizedRa,
+              record.aluno?.nome || "Aluno",
+              record.aluno?.curso_ingresso || null,
+              record,
+            );
+          } catch (err) {
+            console.warn("Falha ao salvar no Supabase (continuando localmente):", err.message);
+          }
+        }
+
+        onAcademicHistoryLoaded?.(record);
+        setManualCompletedTokens(new Set());
+        setPendingRa(null);
+        setRaStatus({
+          type: "success",
+          message: `Historico importado do SIGAA! ${record.disciplinas?.length ?? 0} disciplinas carregadas.`,
+        });
+      }
     } catch (error) {
       setRaStatus({ type: "error", message: error.message });
     } finally {
       setIsLoadingRa(false);
     }
+  };
+
+  const handleSigaaImport = async (parsedResult) => {
+    const { record } = parsedResult;
+    const ra = pendingRa;
+
+    // Save to Supabase for future lookups by anyone with this RA
+    if (isSupabaseConfigured() && ra) {
+      try {
+        await upsertHistorico(
+          ra,
+          record.aluno.nome || "Aluno",
+          record.aluno.curso_ingresso || null,
+          record,
+        );
+      } catch (err) {
+        console.warn("Falha ao salvar no Supabase (continuando localmente):", err.message);
+      }
+    }
+
+    // Load into app state
+    onAcademicHistoryLoaded?.(record);
+    setManualCompletedTokens(new Set());
+    setShowImportModal(false);
+    setPendingRa(null);
+    setRaStatus({
+      type: "success",
+      message: `Historico importado com sucesso! ${record.disciplinas.length} disciplinas carregadas.`,
+    });
   };
 
   return (
@@ -95,6 +249,10 @@ export function AcademicMobileApp({
           <HomePage
             dashboard={dashboard}
             progress={progress}
+            offerings={offerings}
+            offeringsStatus={offeringsStatus}
+            offeringsPeriodo={offeringsPeriodo}
+            onOfferingsUpload={handleOfferingsUpload}
             onOpenPlanning={() => setActivePage("planning")}
             onOpenPerformance={() => setActivePage("performance")}
             onOpenHistory={() => setActivePage("history")}
@@ -117,87 +275,167 @@ export function AcademicMobileApp({
       </div>
 
       <BottomNavigation activePage={activePage} onChange={setActivePage} />
+
+      {showImportModal && (
+        <SigaaImportModal
+          ra={pendingRa}
+          onImport={handleSigaaImport}
+          onClose={() => {
+            setShowImportModal(false);
+            setPendingRa(null);
+          }}
+        />
+      )}
     </main>
   );
 }
 
 function AppTopBar({ student, isLoadingRa, raStatus, onConnectRa }) {
   const [raInput, setRaInput] = useState(student.ra);
+  const [senhaInput, setSenhaInput] = useState("");
   const [showRaForm, setShowRaForm] = useState(false);
+  const [aceitouTermos, setAceitouTermos] = useState(false);
   const initials = student.nome.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
+  const needsPassword = raStatus.type === "needPassword";
+
   const statusTone =
     raStatus.type === "error" ? "text-rose-600" :
-    raStatus.type === "demo"  ? "text-amber-600" :
+    raStatus.type === "demo" || raStatus.type === "needPassword" ? "text-amber-600" :
+    raStatus.type === "loading" ? "text-blue-600" :
     "text-emerald-600";
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (needsPassword) {
+      onConnectRa(raInput, senhaInput);
+      setSenhaInput(""); // limpa senha da memória do state imediatamente
+    } else {
+      onConnectRa(raInput);
+    }
+  };
 
   return (
     <header className="mb-5">
       {/* ── Barra de marca ── */}
       <div className="flex items-center justify-between gap-3">
         {/* Logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.85rem] bg-emerald-500 shadow-[0_8px_22px_rgba(16,185,129,0.42)]">
-            <span className="font-display text-base font-black text-white">C</span>
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500">
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-white" aria-hidden="true">
+              <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+              <path d="M12 22V12M3 7l9 5 9-5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <div className="leading-tight">
-            <p className="text-[0.58rem] font-bold uppercase tracking-[0.26em] text-emerald-500">v2.0 · Beta</p>
-            <p className="text-[0.95rem] font-black text-slate-950">
+          <div className="leading-none">
+            <p className="text-[1rem] font-black tracking-tight text-slate-900">
               Core<span className="text-emerald-500">UFABC</span>
             </p>
           </div>
         </div>
 
-        {/* Avatar + RA trigger */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowRaForm((v) => !v)}
-            className="rounded-xl border border-emerald-200 bg-white/90 px-2.5 py-1.5 text-right shadow-[0_4px_14px_rgba(16,185,129,0.10)] transition hover:border-emerald-400"
-          >
-            <p className="text-[0.55rem] font-bold uppercase tracking-[0.16em] text-emerald-500">RA</p>
-            <p className="text-[0.72rem] font-black text-slate-950">{student.ra.slice(-6)}</p>
-          </button>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.85rem] bg-gradient-to-br from-emerald-400 to-teal-500 shadow-[0_8px_22px_rgba(16,185,129,0.35)]">
-            <span className="text-sm font-black text-white">{initials}</span>
+        {/* Avatar + RA */}
+        <button
+          type="button"
+          onClick={() => setShowRaForm((v) => !v)}
+          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-3 pr-1 shadow-sm transition hover:border-emerald-300"
+        >
+          <span className="text-[0.68rem] font-bold text-slate-500">{student.ra}</span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500">
+            <span className="text-[0.65rem] font-black text-white">{initials}</span>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* ── Formulário de RA (expansível) ── */}
       {showRaForm && (
-        <form
-          className="mt-3 grid grid-cols-[1fr_auto] gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onConnectRa(raInput);
-          }}
-        >
-          <label className="sr-only" htmlFor="ra-connect">RA para conectar</label>
-          <input
-            id="ra-connect"
-            value={raInput}
-            inputMode="numeric"
-            onChange={(event) => setRaInput(event.target.value)}
-            className="min-h-11 rounded-2xl border border-emerald-200 bg-white/90 px-3 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-400"
-            placeholder="Digite seu RA"
-          />
-          <button
-            type="submit"
-            disabled={isLoadingRa}
-            className="min-h-11 rounded-2xl bg-emerald-500 px-4 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
-          >
-            {isLoadingRa ? "..." : "Conectar"}
-          </button>
+        <form className="mt-3 flex flex-col gap-2" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <label className="sr-only" htmlFor="ra-connect">RA para conectar</label>
+            <input
+              id="ra-connect"
+              value={raInput}
+              inputMode="numeric"
+              onChange={(event) => setRaInput(event.target.value)}
+              className="min-h-11 rounded-2xl border border-emerald-200 bg-white/90 px-3 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-400"
+              placeholder="Digite seu RA"
+            />
+            {!needsPassword && (
+              <button
+                type="submit"
+                disabled={isLoadingRa}
+                className="min-h-11 rounded-2xl bg-emerald-500 px-4 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+              >
+                {isLoadingRa ? "..." : "Conectar"}
+              </button>
+            )}
+          </div>
+
+          {/* ── Campo de senha (aparece quando RA não está no cache) ── */}
+          {needsPassword && (
+            <>
+              {/* Aviso LGPD */}
+              <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-2.5">
+                <div className="flex items-start gap-2">
+                  <svg viewBox="0 0 16 16" fill="none" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden="true">
+                    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M8 5v3M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  <div>
+                    <p className="text-[0.62rem] font-black text-amber-800">Aviso de privacidade</p>
+                    <p className="mt-0.5 text-[0.58rem] font-medium leading-snug text-amber-700">
+                      Sua senha sera usada <strong>uma unica vez</strong> para acessar o SIGAA e importar seu historico.
+                      Ela <strong>nao sera armazenada</strong> em nenhum banco de dados.
+                      Apos a importacao, apenas seus dados academicos (disciplinas e notas) ficam salvos para consulta rapida.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <label className="sr-only" htmlFor="senha-sigaa">Senha do SIGAA</label>
+                <input
+                  id="senha-sigaa"
+                  type="password"
+                  value={senhaInput}
+                  onChange={(event) => setSenhaInput(event.target.value)}
+                  autoComplete="off"
+                  className="min-h-11 rounded-2xl border border-amber-300 bg-white/90 px-3 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-400"
+                  placeholder="Senha do SIGAA"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoadingRa || !senhaInput || !aceitouTermos}
+                  className="min-h-11 rounded-2xl bg-emerald-500 px-4 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                >
+                  {isLoadingRa ? "..." : "Importar"}
+                </button>
+              </div>
+
+              {/* Checkbox de consentimento */}
+              <label className="flex cursor-pointer items-start gap-2 rounded-xl px-1 py-1">
+                <input
+                  type="checkbox"
+                  checked={aceitouTermos}
+                  onChange={(e) => setAceitouTermos(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-emerald-500"
+                />
+                <span className="text-[0.6rem] font-medium leading-snug text-slate-500">
+                  Li e entendo que minha senha sera usada apenas para esta importacao e nao sera salva.
+                </span>
+              </label>
+            </>
+          )}
         </form>
       )}
-      {raStatus.message && (
+      {raStatus.message && raStatus.type !== "needPassword" && (
         <p className={`mt-2 text-xs font-bold ${statusTone}`}>{raStatus.message}</p>
       )}
     </header>
   );
 }
 
-function HomePage({ dashboard, progress, onOpenPlanning, onOpenPerformance, onOpenHistory }) {
+function HomePage({ dashboard, progress, offerings, offeringsStatus, offeringsPeriodo, onOfferingsUpload, onOpenPlanning, onOpenPerformance, onOpenHistory }) {
   return (
     <section className="flex flex-col gap-4">
       <WelcomeHero
@@ -205,6 +443,9 @@ function HomePage({ dashboard, progress, onOpenPlanning, onOpenPerformance, onOp
         cr={dashboard.metrics.cr}
         cp={dashboard.metrics.cp}
         approvedCredits={dashboard.approvedCredits}
+        requiredCredits={dashboard.requiredCredits}
+        totalCourses={dashboard.totalCourses}
+        quadrimesters={dashboard.quadrimesters}
       />
 
       <ActionChips
@@ -214,9 +455,40 @@ function HomePage({ dashboard, progress, onOpenPlanning, onOpenPerformance, onOp
         onOpenHistory={onOpenHistory}
       />
 
-      <NextCourseSuggestions progress={progress} onOpenPlanning={onOpenPlanning} />
+      <CurrentQuadCard
+        quadrimesters={dashboard.quadrimesters}
+        onOpenHistory={onOpenHistory}
+      />
 
-      <AxesCompact axes={dashboard.axesProgress} />
+      <NextCourseSuggestions
+        progress={progress}
+        offerings={offerings}
+        offeringsStatus={offeringsStatus}
+        offeringsPeriodo={offeringsPeriodo}
+        onOfferingsUpload={onOfferingsUpload}
+        onOpenPlanning={onOpenPlanning}
+      />
+
+      {/* ── CTA Montar Grade ── */}
+      <button
+        type="button"
+        onClick={onOpenPlanning}
+        className="group flex w-full items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md active:scale-[0.98]"
+      >
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition group-hover:shadow-[0_6px_20px_rgba(16,185,129,0.4)]">
+          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-white" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <path d="M3 10h18M10 4v18"/>
+          </svg>
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-[0.88rem] font-black text-slate-900">Montar grade</p>
+          <p className="text-[0.65rem] font-medium text-slate-400">Monte seus horários para o próximo quadrimestre</p>
+        </div>
+        <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-emerald-500 group-hover:translate-x-0.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 3l5 5-5 5"/>
+        </svg>
+      </button>
     </section>
   );
 }
@@ -228,83 +500,79 @@ function getGreeting() {
   return { text: "Boa noite", emoji: "🌙" };
 }
 
-function WelcomeHero({ student, cp, approvedCredits, cr }) {
+function WelcomeHero({ student, cr, cp, approvedCredits, requiredCredits, totalCourses, quadrimesters }) {
   const firstName = student.nome.split(" ")[0];
   const cpPct = Math.round(cp * 100);
   const greeting = getGreeting();
+  const quadsCompleted = (quadrimesters ?? []).length;
+  const creditsRemaining = Math.max(0, (requiredCredits ?? 0) - approvedCredits);
 
   return (
-    <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(145deg,#064e3b_0%,#047857_30%,#059669_62%,#0d9488_100%)] p-5 pb-6 text-white shadow-[0_36px_90px_rgba(4,120,87,0.42)]">
+    <section className="relative overflow-hidden rounded-[1.6rem] bg-[linear-gradient(145deg,#064e3b_0%,#047857_35%,#059669_70%,#0d9488_100%)] text-white shadow-[0_20px_60px_rgba(4,120,87,0.30)]">
 
-      {/* ── Textura de pontos ── */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:radial-gradient(circle,white_1px,transparent_1px)] [background-size:18px_18px]" />
+      {/* ── Textura sutil ── */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:radial-gradient(circle,white_1px,transparent_1px)] [background-size:18px_18px]" />
 
-      {/* ── Brilho superior ── */}
-      <div className="pointer-events-none absolute -top-10 left-1/2 h-32 w-72 -translate-x-1/2 rounded-full bg-white/10 blur-2xl" />
+      {/* ── Elementos decorativos ── */}
+      <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full border-[18px] border-white/[0.05]" />
+      <div className="absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-teal-400/10 blur-2xl" />
 
-      {/* ── Watermark UFABC ── */}
-      <span className="pointer-events-none absolute -bottom-4 -right-2 select-none font-black leading-none tracking-tighter text-white/[0.06]" style={{ fontSize: "8.5rem" }}>
-        UFABC
-      </span>
-
-      {/* ── Círculos decorativos ── */}
-      <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full border-[26px] border-white/10" />
-      <div className="absolute right-8 top-16 h-12 w-12 rounded-full border-[9px] border-white/[0.08]" />
-      <div className="absolute right-20 top-28 h-5 w-5 rounded-full bg-emerald-300/20" />
-      <div className="absolute -bottom-10 -left-8 h-36 w-36 rounded-full bg-teal-300/20 blur-3xl" />
-
-      {/* ── Badge saudação + instituição ── */}
-      <div className="flex items-center gap-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1 backdrop-blur-sm">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
-          <span className="text-[0.58rem] font-black uppercase tracking-[0.22em] text-white/90">
-            Universidade Federal do ABC
-          </span>
+      {/* ── Conteúdo principal ── */}
+      <div className="relative p-5 pb-4">
+        {/* Saudação */}
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="flex items-center gap-1.5 text-[0.72rem] font-medium text-emerald-200/70">
+              <span>{greeting.emoji}</span>
+              <span>{greeting.text},</span>
+            </p>
+            <h2 className="mt-0.5 font-display text-[2rem] font-black leading-[1] tracking-tight">
+              {firstName}
+            </h2>
+          </div>
+          {/* CR badge */}
+          {typeof cr === "number" && (
+            <div className="flex flex-col items-center rounded-xl border border-white/15 bg-white/10 px-3 py-1.5">
+              <span className="text-[0.48rem] font-black uppercase tracking-[0.16em] text-white/50">CR</span>
+              <span className="font-display text-lg font-black leading-tight">{cr.toFixed(2)}</span>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* ── Saudação principal ── */}
-      <div className="mt-5">
-        <p className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-emerald-200/90">
-          <span>{greeting.emoji}</span>
-          <span>{greeting.text},</span>
-        </p>
-        <h2 className="mt-0.5 font-display text-[3rem] font-black leading-[1] tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
-          {firstName}!
-        </h2>
-        <p className="mt-2.5 max-w-[15rem] text-[0.78rem] font-medium leading-snug text-white/65">
-          Continue de onde parou — sua{" "}
-          <span className="font-black text-white">jornada UFABC</span>{" "}
-          está evoluindo.
+        {/* Curso */}
+        <p className="mt-2 text-[0.62rem] font-medium text-white/45">
+          {student.curso_ingresso ?? "UFABC"} · {quadsCompleted} quadrimestre{quadsCompleted !== 1 ? "s" : ""}
         </p>
       </div>
 
-      {/* ── Stats flutuantes ── */}
-      <div className="mt-5 flex items-center gap-2">
-        <div className="flex flex-col items-center rounded-2xl border border-white/20 bg-white/15 px-3.5 py-2 backdrop-blur-sm">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.18em] text-white/60">CR</p>
-          <p className="font-display text-xl font-black leading-tight text-white">
-            {typeof cr === "number" ? cr.toFixed(2) : "—"}
-          </p>
+      {/* ── Stats bar ── */}
+      <div className="relative border-t border-white/10 bg-white/[0.04] px-5 py-3.5">
+        {/* Barra de progresso */}
+        <div className="flex items-center justify-between">
+          <p className="text-[0.6rem] font-bold text-white/50">Progressão curricular</p>
+          <p className="text-[0.7rem] font-black">{cpPct}%</p>
         </div>
-        <div className="flex flex-col items-center rounded-2xl border border-white/20 bg-white/15 px-3.5 py-2 backdrop-blur-sm">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.18em] text-white/60">Créditos</p>
-          <p className="font-display text-xl font-black leading-tight text-white">{approvedCredits}</p>
+        <div className="mt-1.5 h-[0.4rem] overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-white transition-all duration-700"
+            style={{ width: `${Math.max(cpPct, 3)}%` }}
+          />
         </div>
-        <div className="flex flex-1 flex-col rounded-2xl border border-white/20 bg-white/15 px-3.5 py-2 backdrop-blur-sm">
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-[0.52rem] font-black uppercase tracking-[0.18em] text-white/60">Progressão</p>
-            <p className="text-[0.65rem] font-black text-emerald-200">{cpPct}%</p>
+
+        {/* Mini stats */}
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div>
+            <p className="font-display text-[1.05rem] font-black leading-none">{approvedCredits}</p>
+            <p className="mt-0.5 text-[0.48rem] font-bold uppercase tracking-[0.1em] text-white/40">créditos</p>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/15">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-white/90 to-emerald-200 transition-all duration-700"
-              style={{ width: `${Math.max(cpPct, 3)}%` }}
-            />
+          <div>
+            <p className="font-display text-[1.05rem] font-black leading-none">{totalCourses}</p>
+            <p className="mt-0.5 text-[0.48rem] font-bold uppercase tracking-[0.1em] text-white/40">disciplinas</p>
           </div>
-          <p className="mt-1 text-[0.52rem] font-semibold text-white/40">
-            {student.curso_ingresso ?? "UFABC"}
-          </p>
+          <div>
+            <p className="font-display text-[1.05rem] font-black leading-none">{creditsRemaining}</p>
+            <p className="mt-0.5 text-[0.48rem] font-bold uppercase tracking-[0.1em] text-white/40">restantes</p>
+          </div>
         </div>
       </div>
     </section>
@@ -419,13 +687,46 @@ const Q_STRIP_COLORS = [
   "bg-slate-300",
 ];
 
-function NextCourseSuggestions({ progress, onOpenPlanning }) {
-  const requiredSection = progress.sections.find((s) => s.key === "required");
-  const suggestions = (requiredSection?.items ?? [])
-    .filter((item) => !item.completed && item.preReqsMet)
-    .slice(0, 3);
+function NextCourseSuggestions({ progress, offerings, offeringsStatus, offeringsPeriodo, onOfferingsUpload, onOpenPlanning }) {
+  const offeringsFileRef = useRef(null);
+  // If offerings are loaded, filter to only show courses actually offered this quad
+  const suggestions = useMemo(() => {
+    const requiredSection = progress.sections.find((s) => s.key === "required");
+    const pendingRequired = (requiredSection?.items ?? []).filter(
+      (item) => !item.completed && item.preReqsMet,
+    );
 
-  if (suggestions.length === 0) return null;
+    if (!offerings || offerings.size === 0) {
+      // Fallback: show curriculum order (old behavior)
+      return pendingRequired.slice(0, 5);
+    }
+
+    // Cross-reference with real offerings
+    const offered = pendingRequired.filter((item) => {
+      const code = normalizeRawCourseCode(item.codigo);
+      return offerings.has(code);
+    });
+
+    // Enrich with real credits from the offerings PDF
+    return offered.slice(0, 5).map((item) => {
+      const code = normalizeRawCourseCode(item.codigo);
+      const offering = offerings.get(code);
+      if (!offering) return item;
+      return {
+        ...item,
+        creditos: offering.creditos,
+        turmasCount: offering.turmas.length,
+        tpei: offering.tpei,
+      };
+    });
+  }, [progress.sections, offerings]);
+
+  if (suggestions.length === 0 && offeringsStatus !== "loading") return null;
+
+  const isLive = offeringsStatus === "loaded" && offerings?.size > 0;
+  const headerLabel = isLive
+    ? `${progress.plan.label} · ${offeringsPeriodo ?? "Quad atual"}`
+    : `${progress.plan.label} · Rota`;
 
   return (
     <section className="overflow-hidden rounded-[1.65rem] border border-emerald-200/80 bg-white/90 shadow-[0_18px_60px_rgba(16,185,129,0.10)]">
@@ -433,15 +734,17 @@ function NextCourseSuggestions({ progress, onOpenPlanning }) {
       <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-[0_6px_16px_rgba(16,185,129,0.38)]">
-            <svg viewBox="0 0 20 20" fill="none" className="h-4.5 w-4.5 h-[1.1rem] w-[1.1rem] text-white" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" className="h-[1.1rem] w-[1.1rem] text-white" aria-hidden="true">
               <path d="M10 3L17 8.5V17H13v-5H7v5H3V8.5L10 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
             </svg>
           </div>
           <div>
             <p className="text-[0.58rem] font-black uppercase tracking-[0.2em] text-emerald-500">
-              {progress.plan.label} · Rota
+              {headerLabel}
             </p>
-            <h2 className="text-[1.05rem] font-black leading-tight text-slate-950">Próximas pela rota</h2>
+            <h2 className="text-[1.05rem] font-black leading-tight text-slate-950">
+              {isLive ? "Ofertadas agora" : "Próximas pela rota"}
+            </h2>
           </div>
         </div>
         <button
@@ -453,11 +756,63 @@ function NextCourseSuggestions({ progress, onOpenPlanning }) {
         </button>
       </div>
 
+      {/* Live badge */}
+      {isLive && (
+        <div className="flex items-center gap-1.5 px-4 pb-2">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+          <span className="text-[0.58rem] font-bold text-emerald-500">
+            Dados reais da Prograd · {offerings.size} disciplinas ofertadas em {offeringsPeriodo}
+          </span>
+        </div>
+      )}
+
+      {offeringsStatus === "loading" && (
+        <div className="flex items-center gap-2 px-4 pb-3">
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+          <span className="text-[0.6rem] font-bold text-slate-400">Carregando turmas ofertadas...</span>
+        </div>
+      )}
+
+      {(offeringsStatus === "needs-upload" || offeringsStatus === "error") && (
+        <div className="mx-4 mb-3 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/60 p-3">
+          <p className="text-[0.65rem] font-bold text-emerald-800">
+            Carregue o PDF de turmas ofertadas para ver apenas as matérias disponíveis neste quadrimestre.
+          </p>
+          <p className="mt-1 text-[0.58rem] font-medium text-emerald-600">
+            Baixe em{" "}
+            <a
+              href={buildTurmasOfertadasUrl(getCurrentPeriodo())}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold underline"
+            >
+              prograd.ufabc.edu.br
+            </a>{" "}
+            e faça upload abaixo.
+          </p>
+          <input
+            ref={offeringsFileRef}
+            type="file"
+            accept="application/pdf"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onOfferingsUpload?.(file);
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => offeringsFileRef.current?.click()}
+            className="mt-2 rounded-lg bg-emerald-500 px-3 py-1.5 text-[0.65rem] font-black text-white shadow-sm transition hover:bg-emerald-400"
+          >
+            Upload PDF de turmas
+          </button>
+        </div>
+      )}
+
       <div className="border-t border-slate-100">
         {suggestions.map((item, idx) => {
-          const qColor = Q_COLORS_HOME[item.quadrimestre_ideal] ?? Q_COLORS_HOME[5];
           const strip = Q_STRIP_COLORS[item.quadrimestre_ideal] ?? Q_STRIP_COLORS[5];
-          const eixo = EIXO_SHORT_HOME[item.eixos?.[0]?.codigo];
 
           return (
             <div
@@ -470,30 +825,25 @@ function NextCourseSuggestions({ progress, onOpenPlanning }) {
               {/* Nome + metadados */}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[0.88rem] font-bold text-slate-950">{item.nome}</p>
-                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[0.62rem] font-semibold text-slate-400">{item.codigo}</span>
-                  {item.quadrimestre_ideal != null && (
-                    <span className={`rounded-md px-1.5 py-px text-[0.55rem] font-black ${qColor}`}>
-                      Q{item.quadrimestre_ideal}
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <span className="font-mono text-[0.6rem] font-semibold text-slate-400">{item.codigo}</span>
+                  {item.creditos != null && (
+                    <span className="text-[0.58rem] font-bold text-slate-400">
+                      · {item.creditos}cr
                     </span>
                   )}
-                  {eixo && (
-                    <span className={`rounded-md px-1.5 py-px text-[0.55rem] font-bold ${eixo.color}`}>
-                      {eixo.label}
+                  {item.turmasCount != null && (
+                    <span className="text-[0.58rem] font-bold text-emerald-500">
+                      · {item.turmasCount} turma{item.turmasCount > 1 ? "s" : ""}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Créditos + seta */}
-              <div className="flex shrink-0 items-center gap-1.5">
-                <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">
-                  {item.creditos}cr
-                </span>
-                <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3 text-slate-300" aria-hidden="true">
-                  <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+              {/* Seta */}
+              <svg viewBox="0 0 12 12" fill="none" className="h-3.5 w-3.5 shrink-0 text-slate-300" aria-hidden="true">
+                <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
           );
         })}
@@ -502,58 +852,102 @@ function NextCourseSuggestions({ progress, onOpenPlanning }) {
   );
 }
 
-/* ── Eixos compactos ── */
-const EIXO_STYLE = {
-  computacao:          { label: "Computação",   bar: "bg-gradient-to-r from-emerald-400 to-emerald-600", dot: "bg-emerald-500", pctColor: "text-emerald-600" },
-  matematica:          { label: "Matemática",   bar: "bg-gradient-to-r from-blue-400 to-blue-600",       dot: "bg-blue-500",    pctColor: "text-blue-600" },
-  humanidades:         { label: "Humanidades",  bar: "bg-gradient-to-r from-amber-400 to-amber-600",     dot: "bg-amber-500",   pctColor: "text-amber-600" },
-  "ciencias-naturais": { label: "C. Naturais",  bar: "bg-gradient-to-r from-teal-400 to-teal-600",       dot: "bg-teal-500",    pctColor: "text-teal-600" },
-  livres:              { label: "Livres",        bar: "bg-gradient-to-r from-slate-300 to-slate-400",     dot: "bg-slate-400",   pctColor: "text-slate-500" },
+/* ── Quadrimestre atual (home) ── */
+
+const CONCEITO_BADGE = {
+  A:  { bg: "bg-emerald-500", text: "text-white" },
+  B:  { bg: "bg-blue-100",    text: "text-blue-700" },
+  C:  { bg: "bg-amber-100",   text: "text-amber-700" },
+  D:  { bg: "bg-orange-100",  text: "text-orange-700" },
+  F:  { bg: "bg-rose-100",    text: "text-rose-700" },
+  O:  { bg: "bg-rose-100",    text: "text-rose-700" },
 };
 
-function AxesCompact({ axes }) {
-  if (!axes || axes.length === 0) return null;
+const SITUACAO_LABEL = {
+  APROVADO: "Aprovada",
+  CONVALIDADO: "Aprovada",
+  REPROVADO: "Reprovada",
+  TRANCADO: "Trancada",
+  CANCELADO: "Cancelada",
+  MATRICULADO: "Em curso",
+};
+
+const SITUACAO_COLOR = {
+  APROVADO: "text-emerald-600",
+  CONVALIDADO: "text-emerald-600",
+  REPROVADO: "text-rose-600",
+  TRANCADO: "text-slate-400",
+  CANCELADO: "text-slate-400",
+  MATRICULADO: "text-blue-600",
+};
+
+function CurrentQuadCard({ quadrimesters, onOpenHistory }) {
+  if (!quadrimesters || quadrimesters.length === 0) return null;
+
+  /* Pegar o quadrimestre mais recente (já vem ordenado desc de groupByQuadrimester) */
+  const quad = quadrimesters[0];
+  const courses = quad.courses ?? [];
 
   return (
-    <section className="overflow-hidden rounded-[1.65rem] border border-emerald-200/80 bg-white/90 shadow-[0_18px_60px_rgba(16,185,129,0.10)]">
-      {/* ── Cabeçalho ── */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-emerald-500 shadow-[0_6px_16px_rgba(16,185,129,0.38)]">
-          <svg viewBox="0 0 20 20" fill="none" className="h-[1.1rem] w-[1.1rem] text-white" aria-hidden="true">
-            <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.6"/>
-            <path d="M10 6v4l2.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-          </svg>
-        </div>
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
         <div>
-          <p className="text-[0.58rem] font-black uppercase tracking-[0.2em] text-emerald-500">Curricular</p>
-          <h2 className="text-[1.05rem] font-black leading-tight text-slate-950">Mapa de força</h2>
+          <p className="text-[0.58rem] font-black uppercase tracking-[0.2em] text-emerald-600">
+            Quadrimestre
+          </p>
+          <h2 className="text-[1rem] font-black leading-tight text-slate-950">
+            {quad.label}
+          </h2>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <div className="text-right">
+            <div className="flex items-baseline gap-0.5">
+              <span className="font-display text-lg font-black leading-none text-emerald-600">
+                {quad.approved}
+              </span>
+              <span className="text-[0.6rem] font-bold text-slate-300">/</span>
+              <span className="text-sm font-black text-slate-400">{quad.total}</span>
+            </div>
+            <p className="text-[0.5rem] font-bold uppercase tracking-wide text-slate-400">
+              aprovadas
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenHistory}
+            className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:border-emerald-300 hover:text-emerald-600"
+          >
+            <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 3l5 5-5 5"/>
+            </svg>
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 border-t border-slate-100 px-4 py-3.5">
-        {axes.map((axis) => {
-          const style = EIXO_STYLE[axis.codigo] ?? { label: axis.nome, bar: "bg-slate-400", dot: "bg-slate-400", pctColor: "text-slate-500" };
-          const pct = Math.round(axis.percent * 100);
+      {/* ── Lista de matérias ── */}
+      <div className="divide-y divide-slate-100">
+        {courses.map((course) => {
+          const sitKey = (course.situacao ?? "").toUpperCase();
+          const sitLabel = SITUACAO_LABEL[sitKey] ?? course.situacao ?? "—";
+          const sitColor = SITUACAO_COLOR[sitKey] ?? "text-slate-400";
+          const conceitoKey = course.conceito ?? "—";
+          const badge = CONCEITO_BADGE[conceitoKey] ?? { bg: "bg-slate-100", text: "text-slate-500" };
 
           return (
-            <div key={axis.codigo}>
-              <div className="mb-1.5 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
-                  <span className="text-[0.78rem] font-bold text-slate-700">{style.label}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[0.62rem] font-semibold text-slate-400">
-                    {Math.round(axis.approvedCredits)}cr
-                  </span>
-                  <span className={`w-8 text-right text-[0.68rem] font-black ${style.pctColor}`}>{pct}%</span>
-                </div>
+            <div key={`${course.codigo}-${course.ano_quadrimestre}`} className="flex items-center gap-3 px-4 py-2.5">
+              {/* Conceito badge */}
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[0.7rem] font-black ${badge.bg} ${badge.text}`}>
+                {conceitoKey}
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className={`h-full rounded-full ${style.bar} transition-all duration-500`}
-                  style={{ width: `${pct}%` }}
-                />
+
+              {/* Info */}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[0.78rem] font-bold text-slate-900">{course.nome}</p>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <span className="font-mono text-[0.58rem] font-semibold text-slate-400">{course.codigo}</span>
+                  <span className={`text-[0.58rem] font-bold ${sitColor}`}>{sitLabel}</span>
+                </div>
               </div>
             </div>
           );
@@ -682,12 +1076,51 @@ function CoefCard({ label, value, subtitle, description, accent }) {
 }
 
 function HistoryPage({ dashboard }) {
+  const sectionRefs = useRef({});
+
+  /* Mais recentes primeiro */
+  const quads = useMemo(
+    () => [...(dashboard.quadrimesters ?? [])].reverse(),
+    [dashboard.quadrimesters],
+  );
+
+  function scrollToQuad(label) {
+    const el = sectionRefs.current[label];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <section className="flex flex-col gap-4">
       <PageHeading eyebrow="Historico" title="Sua linha academica" />
+
+      {/* ── Nav pills de quadrimestres ── */}
+      {quads.length > 1 && (
+        <div className="sticky top-0 z-20 -mx-4 bg-[#f4fbf7]/90 px-4 pb-2 pt-1 backdrop-blur-sm">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {quads.map((q) => (
+              <button
+                key={q.label}
+                type="button"
+                onClick={() => scrollToQuad(q.label)}
+                className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-[0.62rem] font-black text-slate-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 active:scale-95"
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <ProgressoEixos axes={dashboard.axesProgress} />
-      {dashboard.quadrimesters.map((quadri) => (
-        <QuadriSection key={quadri.label} quadrimester={quadri} />
+
+      {quads.map((quadri) => (
+        <QuadriSection
+          key={quadri.label}
+          quadrimester={quadri}
+          sectionRef={(el) => {
+            sectionRefs.current[quadri.label] = el;
+          }}
+        />
       ))}
     </section>
   );

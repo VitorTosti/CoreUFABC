@@ -79,27 +79,46 @@ export function CurriculumProgress({ progress, onToggleRequirement }) {
     <div className="mt-4 flex flex-col gap-3">
       {/* ── Cartão de resumo geral ── */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_14px_50px_rgba(0,0,0,0.07)]">
-        <div className="flex items-start justify-between gap-3 p-4">
-          <div className="min-w-0">
-            <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-slate-400">
-              Progresso da matriz
-            </p>
-            <h3 className="mt-0.5 truncate font-display text-2xl font-black text-slate-950">
-              {progress.plan.label}
-            </h3>
-            <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">
-              {progress.plan.name}
-            </p>
-          </div>
+        <div className="p-4">
+          {/* Eyebrow */}
+          <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-slate-400">
+            Progresso da matriz
+          </p>
 
-          <div className="shrink-0 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-right">
-            <p className="text-[0.58rem] font-bold uppercase tracking-[0.16em] text-slate-400">
-              Disciplinas
-            </p>
-            <strong className={`block font-display text-lg font-black ${accent.value}`}>
-              {progress.completed}
-              <span className="text-sm font-bold text-slate-400">/{progress.total}</span>
-            </strong>
+          {/* Nome completo + sigla */}
+          <div className="mt-1.5 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="truncate font-display text-xl font-black leading-tight text-slate-950">
+                {progress.plan.name}
+              </h3>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className={`rounded-lg px-2 py-0.5 text-[0.65rem] font-black ${accent.bg} ${accent.value}`}>
+                  {progress.plan.label}
+                </span>
+                {progress.plan.source && (
+                  <span className="text-[0.6rem] font-semibold text-slate-400">
+                    PPC {typeof progress.plan.source === "string" ? progress.plan.source : progress.plan.source.ppc ?? ""}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Contador de disciplinas — redesenhado */}
+            <div className="shrink-0 text-right">
+              <p className="text-[0.55rem] font-bold uppercase tracking-[0.14em] text-slate-400">
+                Disciplinas
+              </p>
+              <div className="mt-0.5 flex items-baseline justify-end gap-1">
+                <strong className={`font-display text-2xl font-black leading-none ${accent.value}`}>
+                  {progress.completed}
+                </strong>
+                <span className="text-[0.72rem] font-bold text-slate-300">/</span>
+                <span className="text-sm font-black text-slate-400">{progress.total}</span>
+              </div>
+              <p className={`mt-0.5 text-[0.6rem] font-black ${accent.value}`}>
+                {Math.round(itemPercent * 100)}%
+              </p>
+            </div>
           </div>
         </div>
 
@@ -184,11 +203,21 @@ function RequirementSection({ section, requiredCredits, onToggleRequirement }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 pt-0.5">
-          <span className={`rounded-lg px-2 py-1 text-xs font-black ${style.badgeBg}`}>
-            {useCredits
-              ? `${section.completedCredits} / ${requiredCredits} cr`
-              : `${section.completed} / ${section.total}`}
-          </span>
+          {/* Contador redesenhado */}
+          <div className="flex flex-col items-end">
+            <div className="flex items-baseline gap-0.5">
+              <strong className={`font-display text-lg font-black leading-none ${style.eyebrow}`}>
+                {numerator}
+              </strong>
+              <span className="text-[0.65rem] font-bold text-slate-300">/</span>
+              <span className="text-xs font-black text-slate-400">
+                {denominator}{useCredits ? "cr" : ""}
+              </span>
+            </div>
+            <span className={`text-[0.52rem] font-black uppercase tracking-wide ${style.eyebrow} opacity-70`}>
+              {Math.round(percent * 100)}%
+            </span>
+          </div>
           <ChevronIcon open={open} />
         </div>
       </button>

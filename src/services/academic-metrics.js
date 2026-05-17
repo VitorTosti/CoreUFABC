@@ -57,9 +57,7 @@ export function calculateAffinityCoefficient(records, affinityWeights = {}) {
 }
 
 export function calculateProgressionCoefficient(records, requiredCredits) {
-  if (requiredCredits <= 0) {
-    throw new RangeError("requiredCredits must be greater than zero");
-  }
+  if (!requiredCredits || requiredCredits <= 0) return 0;
 
   const approvedCredits = records.filter(isApproved).reduce((total, record) => total + getTpeCredits(record), 0);
 
@@ -160,10 +158,13 @@ export function checkRequirementGap(userHistory, selectedCurriculum) {
 }
 
 export function getTpeCredits(record) {
-  const theory = Number(record.creditos_tide?.teoria ?? 0);
-  const practice = Number(record.creditos_tide?.pratica ?? 0);
-
-  return theory + practice;
+  // PDF parser uses flat `creditos` field; text parser uses `creditos_tide`
+  if (record.creditos_tide) {
+    const theory   = Number(record.creditos_tide.teoria   ?? 0);
+    const practice = Number(record.creditos_tide.pratica  ?? 0);
+    return theory + practice;
+  }
+  return Number(record.creditos ?? 0);
 }
 
 export function isApproved(record) {

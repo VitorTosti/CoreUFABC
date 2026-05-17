@@ -208,8 +208,8 @@
         "codigo": "BIS0002-15",
         "nome": "Projeto Dirigido",
         "creditos": 2,
-        "quadrimestre_ideal": 1,
-        "pre_requisitos": [],
+        "quadrimestre_ideal": 8,
+        "pre_requisitos": ["BCN0402-15", "BCJ0204-15", "BCJ0203-15", "BCM0506-15"],
         "eixos": [
           { "codigo": "engenharia-tecnologia", "nome": "Engenharia e Tecnologia", "peso": 0.6 },
           { "codigo": "ciencias-naturais", "nome": "Ciencias Naturais", "peso": 0.4 }

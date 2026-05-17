@@ -50,6 +50,17 @@ function totalCredits(plan) {
   return (c.obrigatorias ?? 0) + (c.limitadas ?? 0) + (c.livres ?? 0);
 }
 
+/** Abrevia o nome longo do curso para caber no card */
+function shortCourseName(name) {
+  return (name ?? "")
+    .replace("Bacharelado em ", "")
+    .replace("Licenciatura em ", "")
+    .replace("Ciência e Tecnologia", "C&T")
+    .replace("Ciências e Humanidades", "C&H")
+    .replace("Ciências Naturais", "C. Naturais")
+    .replace("Ciências Humanas", "C. Humanas");
+}
+
 export function CourseSelector({ plans, selectedKey, onSelect }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Selecionar curso">
@@ -57,6 +68,7 @@ export function CourseSelector({ plans, selectedKey, onSelect }) {
         const active = plan.key === selectedKey;
         const a = ACCENT[plan.accent] ?? ACCENT.emerald;
         const total = totalCredits(plan);
+        const shortName = shortCourseName(plan.name);
 
         return (
           <button
@@ -64,7 +76,7 @@ export function CourseSelector({ plans, selectedKey, onSelect }) {
             type="button"
             onClick={() => onSelect(plan.key)}
             aria-pressed={active}
-            className={`group relative min-h-[4.5rem] rounded-2xl border px-3 py-3 text-left transition-all duration-200 active:scale-[0.97] ${
+            className={`group relative flex min-h-[5.5rem] flex-col justify-between rounded-2xl border px-3 py-3 text-left transition-all duration-200 active:scale-[0.97] ${
               active ? a.active : a.inactive
             }`}
           >
@@ -72,23 +84,29 @@ export function CourseSelector({ plans, selectedKey, onSelect }) {
               <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-white/60" />
             )}
 
-            <span
-              className={`block text-[0.6rem] font-black uppercase tracking-[0.2em] ${
-                active ? a.eyebrowActive : a.eyebrow
-              }`}
-            >
-              {plan.key}
-            </span>
+            <div>
+              {/* Sigla grande */}
+              <span className="block font-display text-xl font-black leading-none">
+                {plan.label}
+              </span>
 
-            <span className="mt-0.5 block font-display text-xl font-black leading-none">
-              {plan.label}
-            </span>
+              {/* Nome curto do curso */}
+              <span
+                className={`mt-1 block text-[0.6rem] font-semibold leading-tight ${
+                  active ? "text-white/70" : "text-slate-500"
+                }`}
+              >
+                {shortName}
+              </span>
+            </div>
 
+            {/* Badge de créditos */}
             <span
-              className={`mt-2 inline-flex items-center rounded-lg px-1.5 py-0.5 text-[0.6rem] font-black uppercase tracking-[0.1em] transition ${
+              className={`mt-2 inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[0.6rem] font-black uppercase tracking-[0.1em] transition ${
                 active ? a.badgeActive : a.badge
               }`}
             >
+              <span className={`h-1 w-1 rounded-full ${active ? "bg-white/60" : a.dot}`} />
               {total} cr
             </span>
           </button>
