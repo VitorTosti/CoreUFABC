@@ -345,4 +345,107 @@ describe("academic metrics", () => {
     assert.equal(gap.completedCount, 3);
     assert.equal(gap.missingCount, 0);
   });
+
+  // ── Detecção de conflito: periodicidade (quinzenal) ───────────────────
+
+  it("does not flag quinzenal(I) vs quinzenal(II) as a conflict", () => {
+    // Semanas alternadas: nunca ocorrem no mesmo dia físico
+    const selectedClasses = [
+      {
+        codigo: "BCM0506-15",
+        nome: "Comunicacao e Redes",
+        horarios: [{ dia: "quinta", inicio: "19:00", fim: "21:00", periodicidade: "QUINZENAL_II" }],
+      },
+      {
+        codigo: "MCCC005-23",
+        nome: "Analise de Algoritmos II",
+        horarios: [{ dia: "quinta", inicio: "19:00", fim: "21:00", periodicidade: "QUINZENAL_I" }],
+      },
+    ];
+
+    assert.deepEqual(findEnrollmentScheduleConflicts(selectedClasses), []);
+  });
+
+  it("flags semanal vs quinzenal(II) same slot as a real conflict", () => {
+    // MCCC002-23 (semanal) bate com BCM0506-15 B3 (quinzenal II) nas semanas II
+    const selectedClasses = [
+      {
+        codigo: "MCCC002-23",
+        nome: "Algoritmos e Estruturas de Dados II",
+        horarios: [{ dia: "quinta", inicio: "19:00", fim: "21:00" }], // semanal (default)
+      },
+      {
+        codigo: "BCM0506-15",
+        nome: "Comunicacao e Redes",
+        horarios: [{ dia: "quinta", inicio: "19:00", fim: "21:00", periodicidade: "QUINZENAL_II" }],
+      },
+    ];
+
+    const conflicts = findEnrollmentScheduleConflicts(selectedClasses);
+
+    assert.equal(conflicts.length, 1);
+    assert.equal(conflicts[0].type, "SCHEDULE_OVERLAP");
+    assert.equal(conflicts[0].day, "QUINTA");
+  });
+
+  it("parses SIGAA turmas format (semana index + horas array) without conflict", () => {
+    // Grade real do usuario: BCM0506-15 B3 + MCCC005-23 A1 + MCZA014-17 A1 (todos noturnos SA)
+    const selectedClasses = [
+      {
+        codigo: "BCM0506-15",
+        nome: "Comunicacao e Redes",
+        horarios: [
+          { semana: 2, horas: ["21:00", "21:30", "22:00", "22:30", "23:00"], periodicidade_extenso: "- semanal" },
+          { semana: 4, horas: ["19:00", "19:30", "20:00", "20:30", "21:00"], periodicidade_extenso: "- quinzenal (II)" },
+        ],
+      },
+      {
+        codigo: "MCCC005-23",
+        nome: "Analise de Algoritmos II",
+        horarios: [
+          { semana: 2, horas: ["19:00", "19:30", "20:00", "20:30", "21:00"], periodicidade_extenso: "- semanal" },
+          { semana: 4, horas: ["21:00", "21:30", "22:00", "22:30", "23:00"], periodicidade_extenso: "- semanal" },
+        ],
+      },
+      {
+        codigo: "MCZA014-17",
+        nome: "Metodos de Otimizacao",
+        horarios: [
+          { semana: 3, horas: ["19:00", "19:30", "20:00", "20:30", "21:00"], periodicidade_extenso: "- semanal" },
+          { semana: 5, horas: ["21:00", "21:30", "22:00", "22:30", "23:00"], periodicidade_extenso: "- semanal" },
+        ],
+      },
+    ];
+
+    assert.deepEqual(findEnrollmentScheduleConflicts(selectedClasses), []);
+  });
+
+  it("detects real conflict with SIGAA format when same slot is semanal on both sides", () => {
+    // MCCC002-23 (Qui semanal) + BCM0506-15 B3 (Qui quinzenal II) = conflito real
+    const selectedClasses = [
+      {
+        codigo: "MCCC002-23",
+        nome: "Algoritmos e Estruturas de Dados II",
+        horarios: [
+          { semana: 1, horas: ["21:00", "21:30", "22:00", "22:30", "23:00"], periodicidade_extenso: "- semanal" },
+          { semana: 4, horas: ["19:00", "19:30", "20:00", "20:30", "21:00"], periodicidade_extenso: "- semanal" },
+        ],
+      },
+      {
+        codigo: "BCM0506-15",
+        nome: "Comunicacao e Redes",
+        horarios: [
+          { semana: 2, horas: ["21:00", "21:30", "22:00", "22:30", "23:00"], periodicidade_extenso: "- semanal" },
+          { semana: 4, horas: ["19:00", "19:30", "20:00", "20:30", "21:00"], periodicidade_extenso: "- quinzenal (II)" },
+        ],
+      },
+    ];
+
+    const conflicts = findEnrollmentScheduleConflicts(selectedClasses);
+
+    assert.equal(conflicts.length, 1);
+    assert.equal(conflicts[0].day, "QUINTA");
+    assert.equal(conflicts[0].overlap.start, "19:00");
+    assert.equal(conflicts[0].overlap.end, "21:00");
+  });
 });

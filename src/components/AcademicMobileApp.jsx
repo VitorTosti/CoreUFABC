@@ -20,6 +20,7 @@ import { GradePlannerPage } from "./GradePlanner/index.jsx";
 import { ProgressoEixos } from "./ProgressoEixos.jsx";
 import { QuadriSection } from "./QuadriSection.jsx";
 import { SigaaImportModal } from "./SigaaImportModal.jsx";
+import { SettingsSheet } from "./SettingsSheet.jsx";
 
 export function AcademicMobileApp({
   dashboard,
@@ -36,6 +37,7 @@ export function AcademicMobileApp({
   const [isLoadingRa, setIsLoadingRa] = useState(false);
   // Abre modal automaticamente se RA não encontrado no Supabase
   const [showImportModal, setShowImportModal] = useState(autoLoadStatus === "not-found");
+  const [showSettings, setShowSettings] = useState(false);
   const [pendingRa, setPendingRa] = useState(autoLoadStatus === "not-found" ? initialRa : null);
   // ── Turmas ofertadas (course offerings for the current quadrimester) ──
   const [offerings, setOfferings] = useState(null); // Map<code, CourseOffering> | null
@@ -200,6 +202,15 @@ export function AcademicMobileApp({
     }
   };
 
+  const handleClearData = () => {
+    const demo = fallbackAcademicHistories[0];
+    if (demo) {
+      onAcademicHistoryLoaded?.(demo);
+      setManualCompletedTokens(new Set());
+      setSelectedPlanKey("BCT");
+    }
+  };
+
   const handleSigaaImport = async (parsedResult) => {
     const { record } = parsedResult;
     const ra = pendingRa;
@@ -239,9 +250,7 @@ export function AcademicMobileApp({
       <div className="relative mx-auto flex min-h-screen w-full max-w-[30rem] flex-col px-4 pb-24 pt-4">
         <AppTopBar
           student={dashboard.student}
-          isLoadingRa={isLoadingRa}
-          raStatus={raStatus}
-          onConnectRa={handleConnectRa}
+          onOpenSettings={() => setShowSettings(true)}
         />
         <DeveloperDiagnosticsPanel />
 
@@ -286,43 +295,42 @@ export function AcademicMobileApp({
           }}
         />
       )}
+
+      {showSettings && (
+        <SettingsSheet
+          student={dashboard.student}
+          selectedPlanKey={selectedPlanKey}
+          onSelectPlan={setSelectedPlanKey}
+          isLoadingRa={isLoadingRa}
+          raStatus={raStatus}
+          onConnectRa={handleConnectRa}
+          onOpenImport={() => {
+            setShowImportModal(true);
+            setShowSettings(false);
+          }}
+          onClearData={handleClearData}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </main>
   );
 }
 
-function AppTopBar({ student, isLoadingRa, raStatus, onConnectRa }) {
-  const [raInput, setRaInput] = useState(student.ra);
-  const [senhaInput, setSenhaInput] = useState("");
-  const [showRaForm, setShowRaForm] = useState(false);
-  const [aceitouTermos, setAceitouTermos] = useState(false);
+function AppTopBar({ student, onOpenSettings }) {
   const initials = student.nome.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
-  const needsPassword = raStatus.type === "needPassword";
-
-  const statusTone =
-    raStatus.type === "error" ? "text-rose-600" :
-    raStatus.type === "demo" || raStatus.type === "needPassword" ? "text-amber-600" :
-    raStatus.type === "loading" ? "text-blue-600" :
-    "text-emerald-600";
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (needsPassword) {
-      onConnectRa(raInput, senhaInput);
-      setSenhaInput(""); // limpa senha da memória do state imediatamente
-    } else {
-      onConnectRa(raInput);
-    }
-  };
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })
+    .replace(".", "").replace(",", "");
 
   return (
     <header className="mb-5">
       {/* ── Barra de marca ── */}
       <div className="flex items-center justify-between gap-3">
-        {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500">
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-white" aria-hidden="true">
+        {/* Logo + data */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
+            <svg viewBox="0 0 24 24" fill="none" className="h-[1.1rem] w-[1.1rem] text-white" aria-hidden="true">
               <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
               <path d="M12 22V12M3 7l9 5 9-5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
             </svg>
@@ -331,106 +339,23 @@ function AppTopBar({ student, isLoadingRa, raStatus, onConnectRa }) {
             <p className="text-[1rem] font-black tracking-tight text-slate-900">
               Core<span className="text-emerald-500">UFABC</span>
             </p>
+            <p className="mt-0.5 text-[0.55rem] font-semibold capitalize text-slate-400">{dateLabel}</p>
           </div>
         </div>
 
-        {/* Avatar + RA */}
+        {/* Avatar + RA — abre Configurações */}
         <button
           type="button"
-          onClick={() => setShowRaForm((v) => !v)}
-          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-3 pr-1 shadow-sm transition hover:border-emerald-300"
+          onClick={onOpenSettings}
+          aria-label="Abrir configurações"
+          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-3 pr-1 shadow-sm transition hover:border-emerald-300 active:scale-95"
         >
-          <span className="text-[0.68rem] font-bold text-slate-500">{student.ra}</span>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500">
+          <span className="text-[0.65rem] font-bold text-slate-400">{student.ra}</span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_2px_8px_rgba(16,185,129,0.4)]">
             <span className="text-[0.65rem] font-black text-white">{initials}</span>
           </div>
         </button>
       </div>
-
-      {/* ── Formulário de RA (expansível) ── */}
-      {showRaForm && (
-        <form className="mt-3 flex flex-col gap-2" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <label className="sr-only" htmlFor="ra-connect">RA para conectar</label>
-            <input
-              id="ra-connect"
-              value={raInput}
-              inputMode="numeric"
-              onChange={(event) => setRaInput(event.target.value)}
-              className="min-h-11 rounded-2xl border border-emerald-200 bg-white/90 px-3 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-400"
-              placeholder="Digite seu RA"
-            />
-            {!needsPassword && (
-              <button
-                type="submit"
-                disabled={isLoadingRa}
-                className="min-h-11 rounded-2xl bg-emerald-500 px-4 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
-              >
-                {isLoadingRa ? "..." : "Conectar"}
-              </button>
-            )}
-          </div>
-
-          {/* ── Campo de senha (aparece quando RA não está no cache) ── */}
-          {needsPassword && (
-            <>
-              {/* Aviso LGPD */}
-              <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-2.5">
-                <div className="flex items-start gap-2">
-                  <svg viewBox="0 0 16 16" fill="none" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden="true">
-                    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M8 5v3M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                  <div>
-                    <p className="text-[0.62rem] font-black text-amber-800">Aviso de privacidade</p>
-                    <p className="mt-0.5 text-[0.58rem] font-medium leading-snug text-amber-700">
-                      Sua senha sera usada <strong>uma unica vez</strong> para acessar o SIGAA e importar seu historico.
-                      Ela <strong>nao sera armazenada</strong> em nenhum banco de dados.
-                      Apos a importacao, apenas seus dados academicos (disciplinas e notas) ficam salvos para consulta rapida.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-[1fr_auto] gap-2">
-                <label className="sr-only" htmlFor="senha-sigaa">Senha do SIGAA</label>
-                <input
-                  id="senha-sigaa"
-                  type="password"
-                  value={senhaInput}
-                  onChange={(event) => setSenhaInput(event.target.value)}
-                  autoComplete="off"
-                  className="min-h-11 rounded-2xl border border-amber-300 bg-white/90 px-3 text-sm font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-400"
-                  placeholder="Senha do SIGAA"
-                />
-                <button
-                  type="submit"
-                  disabled={isLoadingRa || !senhaInput || !aceitouTermos}
-                  className="min-h-11 rounded-2xl bg-emerald-500 px-4 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
-                >
-                  {isLoadingRa ? "..." : "Importar"}
-                </button>
-              </div>
-
-              {/* Checkbox de consentimento */}
-              <label className="flex cursor-pointer items-start gap-2 rounded-xl px-1 py-1">
-                <input
-                  type="checkbox"
-                  checked={aceitouTermos}
-                  onChange={(e) => setAceitouTermos(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-emerald-500"
-                />
-                <span className="text-[0.6rem] font-medium leading-snug text-slate-500">
-                  Li e entendo que minha senha sera usada apenas para esta importacao e nao sera salva.
-                </span>
-              </label>
-            </>
-          )}
-        </form>
-      )}
-      {raStatus.message && raStatus.type !== "needPassword" && (
-        <p className={`mt-2 text-xs font-bold ${statusTone}`}>{raStatus.message}</p>
-      )}
     </header>
   );
 }
@@ -473,19 +398,26 @@ function HomePage({ dashboard, progress, offerings, offeringsStatus, offeringsPe
       <button
         type="button"
         onClick={onOpenPlanning}
-        className="group flex w-full items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md active:scale-[0.98]"
+        className="group relative overflow-hidden flex w-full items-center gap-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 p-4 text-white shadow-[0_8px_24px_rgba(16,185,129,0.28)] transition-all active:scale-[0.98] hover:shadow-[0_12px_32px_rgba(16,185,129,0.38)] hover:brightness-105"
       >
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition group-hover:shadow-[0_6px_20px_rgba(16,185,129,0.4)]">
+        {/* brilho diagonal */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
+        {/* watermark */}
+        <svg viewBox="0 0 24 24" fill="none" className="pointer-events-none absolute -right-2 -bottom-2 h-16 w-16 text-white/10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M10 4v18"/>
+        </svg>
+
+        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20">
           <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-white" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2"/>
             <path d="M3 10h18M10 4v18"/>
           </svg>
         </div>
-        <div className="flex-1 text-left">
-          <p className="text-[0.88rem] font-black text-slate-900">Montar grade</p>
-          <p className="text-[0.65rem] font-medium text-slate-400">Monte seus horários para o próximo quadrimestre</p>
+        <div className="relative flex-1 text-left">
+          <p className="text-[0.92rem] font-black">Montar grade</p>
+          <p className="text-[0.62rem] font-medium text-white/65">Monte seus horários para o próximo quad</p>
         </div>
-        <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-emerald-500 group-hover:translate-x-0.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 16 16" fill="none" className="relative h-4 w-4 shrink-0 text-white/50 transition-transform group-hover:translate-x-0.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 3l5 5-5 5"/>
         </svg>
       </button>
@@ -500,80 +432,110 @@ function getGreeting() {
   return { text: "Boa noite", emoji: "🌙" };
 }
 
+/* Retorna label e cor de status com base no CR */
+function crStatus(cr) {
+  if (typeof cr !== "number") return null;
+  if (cr >= 3.5) return { label: "Excelente", dot: "bg-emerald-300", text: "text-emerald-200" };
+  if (cr >= 3.0) return { label: "Bom",       dot: "bg-sky-300",     text: "text-sky-200" };
+  if (cr >= 2.5) return { label: "Regular",   dot: "bg-amber-300",   text: "text-amber-200" };
+  return           { label: "Atenção",         dot: "bg-rose-400",    text: "text-rose-300" };
+}
+
 function WelcomeHero({ student, cr, cp, approvedCredits, requiredCredits, totalCourses, quadrimesters }) {
   const firstName = student.nome.split(" ")[0];
+  const lastName  = student.nome.split(" ").slice(-1)[0];
   const cpPct = Math.round(cp * 100);
   const greeting = getGreeting();
   const quadsCompleted = (quadrimesters ?? []).length;
   const creditsRemaining = Math.max(0, (requiredCredits ?? 0) - approvedCredits);
+  const status = crStatus(cr);
 
   return (
-    <section className="relative overflow-hidden rounded-[1.6rem] bg-[linear-gradient(145deg,#064e3b_0%,#047857_35%,#059669_70%,#0d9488_100%)] text-white shadow-[0_20px_60px_rgba(4,120,87,0.30)]">
+    <section className="relative overflow-hidden rounded-[1.75rem] bg-[linear-gradient(145deg,#052e16_0%,#064e3b_30%,#047857_65%,#059669_100%)] text-white shadow-[0_24px_64px_rgba(4,120,87,0.35)]">
 
-      {/* ── Textura sutil ── */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:radial-gradient(circle,white_1px,transparent_1px)] [background-size:18px_18px]" />
+      {/* ── Textura mesh ── */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle,white_1px,transparent_1px)] [background-size:16px_16px]" />
 
-      {/* ── Elementos decorativos ── */}
-      <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full border-[18px] border-white/[0.05]" />
-      <div className="absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-teal-400/10 blur-2xl" />
+      {/* ── Blobs decorativos ── */}
+      <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full border-[20px] border-white/[0.04]" />
+      <div className="absolute right-10 top-14 h-20 w-20 rounded-full border-[8px] border-white/[0.04]" />
+      <div className="absolute -bottom-20 -left-12 h-48 w-48 rounded-full bg-teal-400/10 blur-3xl" />
+      <div className="absolute -bottom-4 right-0 h-24 w-24 rounded-full bg-emerald-300/10 blur-2xl" />
 
-      {/* ── Conteúdo principal ── */}
-      <div className="relative p-5 pb-4">
-        {/* Saudação */}
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="flex items-center gap-1.5 text-[0.72rem] font-medium text-emerald-200/70">
+      {/* ════ Zona 1 — Identidade ════ */}
+      <div className="relative px-5 pt-5 pb-4">
+
+        {/* Topo: saudação + badge CR */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[0.7rem] font-semibold text-white/50">
               <span>{greeting.emoji}</span>
               <span>{greeting.text},</span>
             </p>
-            <h2 className="mt-0.5 font-display text-[2rem] font-black leading-[1] tracking-tight">
+            <h2 className="mt-0.5 font-display text-[2.1rem] font-black leading-[1] tracking-tight">
               {firstName}
             </h2>
+            <p className="mt-1 text-[0.58rem] font-semibold text-white/35 tracking-wide">
+              {lastName !== firstName ? lastName + " · " : ""}{student.curso_ingresso ?? "UFABC"}
+            </p>
           </div>
+
           {/* CR badge */}
           {typeof cr === "number" && (
-            <div className="flex flex-col items-center rounded-xl border border-white/15 bg-white/10 px-3 py-1.5">
-              <span className="text-[0.48rem] font-black uppercase tracking-[0.16em] text-white/50">CR</span>
-              <span className="font-display text-lg font-black leading-tight">{cr.toFixed(2)}</span>
+            <div className="shrink-0 flex flex-col items-center rounded-2xl border border-white/10 bg-white/10 px-3.5 py-2.5 backdrop-blur-sm">
+              <span className="text-[0.44rem] font-black uppercase tracking-[0.2em] text-white/40">CR</span>
+              <span className="mt-0.5 font-display text-xl font-black leading-none">{cr.toFixed(2)}</span>
+              {status && (
+                <div className="mt-1.5 flex items-center gap-1">
+                  <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+                  <span className={`text-[0.42rem] font-black uppercase tracking-[0.1em] ${status.text}`}>{status.label}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Curso */}
-        <p className="mt-2 text-[0.62rem] font-medium text-white/45">
-          {student.curso_ingresso ?? "UFABC"} · {quadsCompleted} quadrimestre{quadsCompleted !== 1 ? "s" : ""}
+        {/* Status acadêmico pill */}
+        {status && (
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/8 px-2.5 py-1">
+            <span className={`h-1.5 w-1.5 animate-pulse rounded-full ${status.dot}`} />
+            <span className="text-[0.55rem] font-bold text-white/60">
+              Desempenho {status.label} · {quadsCompleted} quad{quadsCompleted !== 1 ? "s" : ""} cursado{quadsCompleted !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ════ Zona 2 — Progressão ════ */}
+      <div className="relative border-t border-white/[0.08] bg-black/[0.08] px-5 pt-3.5 pb-2.5">
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-[0.58rem] font-bold uppercase tracking-[0.14em] text-white/40">Progressão curricular</p>
+          <p className="text-[0.72rem] font-black">{cpPct}%</p>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-teal-200 to-white/90 transition-all duration-1000"
+            style={{ width: `${Math.max(cpPct, 2)}%` }}
+          />
+        </div>
+        <p className="mt-1.5 text-[0.52rem] font-medium text-white/25">
+          {approvedCredits} de {requiredCredits ?? "—"} créditos necessários
         </p>
       </div>
 
-      {/* ── Stats bar ── */}
-      <div className="relative border-t border-white/10 bg-white/[0.04] px-5 py-3.5">
-        {/* Barra de progresso */}
-        <div className="flex items-center justify-between">
-          <p className="text-[0.6rem] font-bold text-white/50">Progressão curricular</p>
-          <p className="text-[0.7rem] font-black">{cpPct}%</p>
-        </div>
-        <div className="mt-1.5 h-[0.4rem] overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-white transition-all duration-700"
-            style={{ width: `${Math.max(cpPct, 3)}%` }}
-          />
-        </div>
-
-        {/* Mini stats */}
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <div>
-            <p className="font-display text-[1.05rem] font-black leading-none">{approvedCredits}</p>
-            <p className="mt-0.5 text-[0.48rem] font-bold uppercase tracking-[0.1em] text-white/40">créditos</p>
+      {/* ════ Zona 3 — Stats grid ════ */}
+      <div className="grid grid-cols-3 divide-x divide-white/[0.08] border-t border-white/[0.08]">
+        {[
+          { value: approvedCredits, label: "Créditos", sub: "aprovados" },
+          { value: totalCourses,    label: "Disciplinas", sub: "no histórico" },
+          { value: creditsRemaining, label: "Restantes", sub: "para formar" },
+        ].map(({ value, label, sub }) => (
+          <div key={label} className="flex flex-col items-center py-3.5 px-2">
+            <p className="font-display text-[1.15rem] font-black leading-none">{value}</p>
+            <p className="mt-0.5 text-[0.5rem] font-black uppercase tracking-[0.1em] text-white/50">{label}</p>
+            <p className="text-[0.44rem] font-medium text-white/25">{sub}</p>
           </div>
-          <div>
-            <p className="font-display text-[1.05rem] font-black leading-none">{totalCourses}</p>
-            <p className="mt-0.5 text-[0.48rem] font-bold uppercase tracking-[0.1em] text-white/40">disciplinas</p>
-          </div>
-          <div>
-            <p className="font-display text-[1.05rem] font-black leading-none">{creditsRemaining}</p>
-            <p className="mt-0.5 text-[0.48rem] font-bold uppercase tracking-[0.1em] text-white/40">restantes</p>
-          </div>
-        </div>
+        ))}
       </div>
     </section>
   );
@@ -633,26 +595,35 @@ function ActionChips({ progress, onOpenPlanning, onOpenPerformance, onOpenHistor
   ];
 
   return (
-    <div className="flex gap-2.5">
+    <div className="flex gap-2">
       {chips.map((chip) => (
         <button
           key={chip.key}
           type="button"
           onClick={chip.onClick}
-          className={`relative flex flex-1 flex-col justify-between overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${chip.grad} p-3.5 text-left text-white ${chip.shadow} transition-all duration-200 active:scale-[0.95] hover:brightness-110`}
+          className={`relative flex flex-1 flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${chip.grad} p-3.5 text-left text-white ${chip.shadow} transition-all duration-200 active:scale-[0.95] hover:brightness-105`}
         >
           {/* Ícone marca-d'água */}
-          <div className="pointer-events-none absolute -bottom-1 -right-1 opacity-20">
+          <div className="pointer-events-none absolute -bottom-2 -right-2 opacity-[0.18]">
             {chip.bgIcon}
           </div>
-          {/* Brilho superior */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white/20 to-transparent" />
+          {/* Brilho diagonal */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
 
-          <div className="relative">
-            <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-white/60">{chip.eyebrow}</p>
-            <p className="mt-0.5 text-[0.85rem] font-black leading-tight">{chip.label}</p>
+          <div className="relative flex flex-col gap-0.5">
+            <p className="text-[0.48rem] font-black uppercase tracking-[0.22em] text-white/50">{chip.eyebrow}</p>
+            <p className="text-[0.88rem] font-black leading-tight">{chip.label}</p>
           </div>
-          <p className="relative mt-4 text-[0.6rem] font-semibold text-white/70">{chip.detail}</p>
+
+          {/* Separador */}
+          <div className="relative my-2.5 h-px bg-white/15" />
+
+          <p className="relative text-[0.58rem] font-bold text-white/65 leading-snug">{chip.detail}</p>
+
+          {/* Seta */}
+          <svg viewBox="0 0 12 12" fill="none" className="absolute bottom-3 right-3 h-3 w-3 text-white/30" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 2l4 4-4 4"/>
+          </svg>
         </button>
       ))}
     </div>

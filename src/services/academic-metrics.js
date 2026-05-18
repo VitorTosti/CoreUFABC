@@ -103,6 +103,9 @@ export function findEnrollmentScheduleConflicts(courses) {
         for (const secondMeeting of second.meetings) {
           if (firstMeeting.day !== secondMeeting.day) continue;
 
+          // Quinzenal(I) vs Quinzenal(II) → semanas opostas, nunca conflitam
+          if (!periodicidadesConflict(firstMeeting.periodicidade, secondMeeting.periodicidade)) continue;
+
           const overlapStart = Math.max(firstMeeting.startMinutes, secondMeeting.startMinutes);
           const overlapEnd = Math.min(firstMeeting.endMinutes, secondMeeting.endMinutes);
 
@@ -183,25 +186,75 @@ function normalizeCourseCode(code) {
   return String(code ?? "").trim().toUpperCase();
 }
 
+// Índice numérico de semana usado pelo turmas-2026-q2.json (API do SIGAA)
+const SEMANA_INDEX_TO_DAY = Object.freeze({
+  1: "SEGUNDA",
+  2: "TERCA",
+  3: "QUARTA",
+  4: "QUINTA",
+  5: "SEXTA",
+  6: "SABADO",
+  7: "DOMINGO",
+});
+
+/**
+ * Converte `periodicidade_extenso` da API (ou token canônico) em token canônico.
+ * Aceita tanto a forma textual da API ("- quinzenal (II)") quanto
+ * o token já normalizado ("QUINZENAL_II"), permitindo ambos os formatos nos testes.
+ *
+ * "- quinzenal (I)"  → "QUINZENAL_I"
+ * "- quinzenal (II)" → "QUINZENAL_II"
+ * "- semanal"        → "SEMANAL"   (default seguro)
+ */
+function parsePeriodicidade(extenso) {
+  const raw = String(extenso ?? "").trim();
+  // Token canônico passado diretamente (ex.: em testes com legado { periodicidade: "QUINZENAL_II" })
+  if (raw === "QUINZENAL_I" || raw === "QUINZENAL_II" || raw === "SEMANAL") return raw;
+  // Texto descritivo da API SIGAA (ex.: "- quinzenal (II)")
+  const lower = raw.toLowerCase();
+  if (/quinzenal\s*\(?ii\)?/.test(lower)) return "QUINZENAL_II";
+  if (/quinzenal\s*\(?i\)?/.test(lower))  return "QUINZENAL_I";
+  return "SEMANAL";
+}
+
+/**
+ * Duas periodicidades entram em conflito se, e somente se, as aulas podem
+ * ocorrer na mesma semana física.
+ * Quinzenal(I) e Quinzenal(II) alternam semanas → NUNCA conflitam entre si.
+ */
+function periodicidadesConflict(a, b) {
+  return !(
+    (a === "QUINZENAL_I"  && b === "QUINZENAL_II") ||
+    (a === "QUINZENAL_II" && b === "QUINZENAL_I")
+  );
+}
+
 function getCourseMeetings(course) {
   const rawMeetings = course.horarios ?? course.schedule ?? [];
 
   return rawMeetings.map((meeting) => {
-    const day = normalizeDay(meeting.dia ?? meeting.day);
-    const start = meeting.inicio ?? meeting.start;
-    const end = meeting.fim ?? meeting.end;
-    const startMinutes = parseTimeToMinutes(start);
-    const endMinutes = parseTimeToMinutes(end);
+    let day, startMinutes, endMinutes, periodicidade;
+
+    // Formato da API SIGAA / turmas-YYYY-qN.json:
+    //   { semana: 4, horas: ["19:00","19:30","20:00","20:30","21:00"], periodicidade_extenso: "- quinzenal (II)" }
+    if (typeof meeting.semana === "number" && Array.isArray(meeting.horas) && meeting.horas.length >= 2) {
+      day           = SEMANA_INDEX_TO_DAY[meeting.semana] ?? String(meeting.semana);
+      startMinutes  = parseTimeToMinutes(meeting.horas[0]);
+      endMinutes    = parseTimeToMinutes(meeting.horas[meeting.horas.length - 1]);
+      periodicidade = parsePeriodicidade(meeting.periodicidade_extenso);
+    } else {
+      // Formato legado / testes: { dia/day, inicio/start, fim/end }
+      day           = normalizeDay(meeting.dia ?? meeting.day);
+      startMinutes  = parseTimeToMinutes(meeting.inicio ?? meeting.start);
+      endMinutes    = parseTimeToMinutes(meeting.fim    ?? meeting.end);
+      periodicidade = parsePeriodicidade(meeting.periodicidade_extenso ?? meeting.periodicidade);
+    }
 
     if (startMinutes >= endMinutes) {
       throw new RangeError(`Invalid meeting interval for ${course.codigo ?? course.nome ?? "course"}`);
     }
 
-    return {
-      day,
-      startMinutes,
-      endMinutes,
-    };
+    return { day, startMinutes, endMinutes, periodicidade };
   });
 }
 
